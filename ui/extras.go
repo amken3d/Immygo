@@ -295,6 +295,7 @@ func (t *TreeViewView) layout(gtx layout.Context, th *theme.Theme) layout.Dimens
 // AccordionView wraps collapsible sections.
 type AccordionView struct {
 	acc *widget.Accordion
+	th  *theme.Theme // set each frame in layout
 }
 
 // Accordion creates a vertically stacked set of collapsible sections.
@@ -310,7 +311,7 @@ func Accordion() *AccordionView {
 // Section adds a collapsible section with a View as content.
 func (a *AccordionView) Section(title string, content View) *AccordionView {
 	a.acc.AddSection(title, func(gtx layout.Context) layout.Dimensions {
-		return content.layout(gtx, nil)
+		return content.layout(gtx, a.th)
 	})
 	return a
 }
@@ -318,7 +319,7 @@ func (a *AccordionView) Section(title string, content View) *AccordionView {
 // SectionExpanded adds an initially expanded section.
 func (a *AccordionView) SectionExpanded(title string, content View) *AccordionView {
 	a.acc.AddSectionExpanded(title, func(gtx layout.Context) layout.Dimensions {
-		return content.layout(gtx, nil)
+		return content.layout(gtx, a.th)
 	})
 	return a
 }
@@ -339,6 +340,7 @@ func (a *AccordionView) Padding(dp unit.Dp) *Styled       { return Style(a).Padd
 func (a *AccordionView) Background(c color.NRGBA) *Styled { return Style(a).Background(c) }
 
 func (a *AccordionView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+	a.th = th
 	return a.acc.Layout(gtx, th)
 }
 
@@ -347,6 +349,7 @@ func (a *AccordionView) layout(gtx layout.Context, th *theme.Theme) layout.Dimen
 // DrawerView wraps a slide-out panel overlay.
 type DrawerView struct {
 	drawer *widget.Drawer
+	th     *theme.Theme // set each frame in layout
 }
 
 // Drawer creates a slide-out drawer.
@@ -354,11 +357,11 @@ type DrawerView struct {
 //	drawer := ui.Drawer(menuContent).Width(280)
 //	drawer.Open() / drawer.Close() / drawer.Toggle()
 func Drawer(content View) *DrawerView {
-	d := widget.NewDrawer()
-	d.WithContent(func(gtx layout.Context) layout.Dimensions {
-		return content.layout(gtx, nil)
+	dv := &DrawerView{drawer: widget.NewDrawer()}
+	dv.drawer.WithContent(func(gtx layout.Context) layout.Dimensions {
+		return content.layout(gtx, dv.th)
 	})
-	return &DrawerView{drawer: d}
+	return dv
 }
 
 // Width sets the drawer width.
@@ -386,6 +389,7 @@ func (d *DrawerView) Toggle() { d.drawer.Toggle() }
 func (d *DrawerView) IsOpen() bool { return d.drawer.IsOpen() }
 
 func (d *DrawerView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+	d.th = th
 	return d.drawer.Layout(gtx, th)
 }
 

@@ -21,6 +21,7 @@ const (
 // DialogView wraps a modal dialog overlay.
 type DialogView struct {
 	dlg *widget.Dialog
+	th  *theme.Theme // set each frame in layout
 }
 
 // Dialog creates a modal dialog with OK/Cancel buttons.
@@ -56,8 +57,7 @@ func Confirm(title string) *DialogView {
 // Content sets the dialog body as a View.
 func (d *DialogView) Content(view View) *DialogView {
 	d.dlg.WithContent(func(gtx layout.Context) layout.Dimensions {
-		// We need a theme to layout views. Use Themed to get the current one.
-		return view.layout(gtx, nil) // theme is handled at dialog level
+		return view.layout(gtx, d.th)
 	})
 	return d
 }
@@ -102,5 +102,6 @@ func (d *DialogView) Hide() { d.dlg.Hide() }
 func (d *DialogView) Visible() bool { return d.dlg.Visible }
 
 func (d *DialogView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+	d.th = th
 	return d.dlg.Layout(gtx, th)
 }

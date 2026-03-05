@@ -175,10 +175,10 @@ func WithTooltip(text string, child View) View {
 	return &tooltipTextView{text: text, child: child}
 }
 
-func (t *tooltipTextView) layout(gtx layout.Context, _ *theme.Theme) layout.Dimensions {
+func (t *tooltipTextView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 	// Delegate to the existing Tooltip widget wrapper
 	tv := Tooltip(t.text, t.child)
-	return tv.layout(gtx, nil)
+	return tv.layout(gtx, th)
 }
 
 // --- Color helpers (already in widgets.go but ensuring availability) ---
