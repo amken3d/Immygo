@@ -124,7 +124,7 @@ immygo new myapp --ai "a todo list with add and delete"
 
 ### System Dependencies
 
-- **Linux (Debian/Ubuntu):** `sudo apt install libwayland-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libx11-xcb-dev`
+- **Linux (Debian/Ubuntu):** `sudo apt install libwayland-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libx11-xcb-dev libvulkan-dev`
 - **macOS:** `xcode-select --install`
 - **Windows:** No additional dependencies
 

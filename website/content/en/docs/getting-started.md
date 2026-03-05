@@ -15,12 +15,12 @@ ImmyGo uses Gio for rendering, which requires platform-specific libraries:
 
 **Linux (Debian/Ubuntu):**
 ```bash
-sudo apt install -y libwayland-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libx11-xcb-dev
+sudo apt install -y libwayland-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libx11-xcb-dev libvulkan-dev
 ```
 
 **Linux (Fedora):**
 ```bash
-sudo dnf install wayland-devel libxkbcommon-x11-devel mesa-libGLES-devel mesa-libEGL-devel libX11-xcb
+sudo dnf install wayland-devel libxkbcommon-x11-devel mesa-libGLES-devel mesa-libEGL-devel libX11-xcb vulkan-headers
 ```
 
 **macOS:**
