@@ -1,14 +1,65 @@
 # AI Integration Guide
 
-ImmyGo includes built-in AI capabilities with a pluggable provider system. Out of the box it supports **Ollama** (local models), **Anthropic Claude** (cloud API), and **MCP** (any MCP-compatible server). Your apps can have AI features — chat, autocomplete, code generation — and the CLI tools (`immygo new --ai`, `immygo dev --ai`) use the same provider system.
+ImmyGo includes built-in AI capabilities with a pluggable provider system. Out of the box it supports **Yzma** (in-process local inference via llama.cpp), **Ollama** (local server), **Anthropic Claude** (cloud API), and **MCP** (any MCP-compatible server). Your apps can have AI features — chat, autocomplete, code generation — and the CLI tools (`immygo new --ai`, `immygo dev --ai`) use the same provider system.
 
 ImmyGo also provides an **AI-first developer workflow** with an MCP server, conversational dev mode, runtime UI prototyping, and layout debugging — designed for developers who use Claude Code, Cursor, and other AI tools.
 
 ## Provider Setup
 
-ImmyGo auto-detects available providers in this order: **Ollama** (local) > **Anthropic** (if API key set) > **MCP** (if command configured) > **simulation** (fallback). You can also choose explicitly.
+ImmyGo auto-detects available providers in this order: **Yzma** (local, no server) > **Ollama** (local server) > **Anthropic** (if API key set) > **MCP** (if command configured) > **simulation** (fallback). You can also choose explicitly.
 
-### Option 1: Ollama (Local Models)
+### Option 1: Yzma (Local In-Process Inference)
+
+The most private option — runs a GGUF model directly in your process via [Yzma](https://github.com/hybridgroup/yzma) (Go bindings for llama.cpp). No server, no API keys, no network. Supports hardware acceleration (CUDA, Vulkan, Metal).
+
+**Install the Yzma CLI:**
+```bash
+go install github.com/hybridgroup/yzma@latest
+```
+
+**Download the llama.cpp library:**
+```bash
+yzma lib get -p cpu       # CPU only
+yzma lib get -p cuda      # NVIDIA GPU
+yzma lib get -p vulkan    # AMD/Intel GPU (Linux)
+yzma lib get -p metal     # macOS Apple Silicon
+```
+
+**Set library path:**
+```bash
+# Add to ~/.bashrc or ~/.profile
+export YZMA_LIB=/path/to/lib               # directory containing libllama.so
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${YZMA_LIB}
+```
+
+**Download a model:**
+```bash
+# 7B recommended for code generation (~4GB RAM)
+yzma model get -u https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q4_k_m.gguf
+
+# 3B lighter alternative (~2GB RAM)
+yzma model get -u https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/qwen2.5-coder-3b-instruct-q4_k_m.gguf
+```
+
+Models are saved to `~/models/` by default.
+
+**Use it:**
+```bash
+export IMMYGO_YZMA_MODEL=~/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf
+
+# Auto-detected (Yzma is tried first when YZMA_LIB + IMMYGO_YZMA_MODEL are set)
+immygo new myapp --ai "a todo list"
+
+# Explicit
+immygo new myapp --ai "a calculator" --provider yzma
+
+# Or specify paths via flags
+immygo new myapp --ai "a timer" --provider yzma --yzma-model ~/models/qwen2.5-coder-7b-instruct-q4_k_m.gguf --yzma-lib ~/lib
+```
+
+> **Model size matters:** Models under 3B parameters tend to hallucinate ImmyGo APIs. Use 7B+ for reliable code generation. For best results, use Anthropic Claude or Ollama with a large model.
+
+### Option 2: Ollama (Local Models)
 
 The recommended option for local, private AI with no API keys or costs.
 
@@ -95,8 +146,10 @@ Provider selection can be configured via CLI flags or environment variables. CLI
 
 | CLI Flag | Environment Variable | Description |
 |----------|---------------------|-------------|
-| `--provider <name>` | `IMMYGO_PROVIDER` | Provider: `ollama`, `anthropic`, `mcp`, `simulation` |
+| `--provider <name>` | `IMMYGO_PROVIDER` | Provider: `yzma`, `ollama`, `anthropic`, `mcp`, `simulation` |
 | `--model <name>` | `IMMYGO_MODEL` | Model name (provider-specific) |
+| `--yzma-model <path>` | `IMMYGO_YZMA_MODEL` | Path to GGUF model file for Yzma |
+| `--yzma-lib <path>` | `YZMA_LIB` | Path to llama.cpp shared library |
 | | `IMMYGO_OLLAMA_HOST` | Ollama API URL (default: `http://localhost:11434`) |
 | `--mcp-command <cmd>` | `IMMYGO_MCP_COMMAND` | MCP server command to spawn |
 | `--mcp-tool <name>` | `IMMYGO_MCP_TOOL` | MCP tool name (default: `immygo_generate_code`) |
@@ -108,6 +161,15 @@ When embedding AI in your own app, you can configure the provider explicitly:
 
 ```go
 import "github.com/amken3d/immygo/ai"
+
+// Use Yzma (local, in-process)
+provider := ai.NewYzmaProvider(
+    os.Getenv("YZMA_LIB"),                    // llama.cpp library path
+    os.ExpandEnv("$HOME/models/qwen2.5.gguf"), // GGUF model path
+    4096,  // context size
+    2048,  // max tokens
+    0.7,   // temperature
+)
 
 // Use Ollama
 provider := ai.NewOllamaProvider("http://localhost:11434", "qwen2.5-coder")
@@ -137,7 +199,8 @@ assistant := ai.DefaultAssistant()
 ```
 ai.Provider            Interface: Complete(), CompleteStream(), Name()
     |
-    +-- OllamaProvider      Local models via Ollama HTTP API
+    +-- YzmaProvider         In-process local inference via llama.cpp (no server)
+    +-- OllamaProvider       Local models via Ollama HTTP API
     +-- AnthropicProvider    Claude API (cloud)
     +-- MCPClientProvider    Any MCP server (subprocess + stdio JSON-RPC)
     +-- simulationProvider   Fallback for development/testing
@@ -597,6 +660,21 @@ code, err := ai.GenerateCode(ctx, "a counter app with reset button")
 These are used internally by the MCP server, `immygo new --ai`, `immygo dev --ai`, and `ui.Prototype()`.
 
 ## Model Recommendations
+
+### Yzma Models (GGUF)
+
+Download with `yzma model get -u <url>`. Models are saved to `~/models/`.
+
+| Use Case | Model | Size | RAM | Notes |
+|----------|-------|------|-----|-------|
+| Code generation (recommended) | Qwen 2.5 Coder 7B Q4 | ~4 GB | ~8 GB | Best local code quality |
+| Code generation (lighter) | Qwen 2.5 Coder 3B Q4 | ~2 GB | ~4 GB | Decent, some hallucinations |
+| Code generation (tiny) | Qwen 2.5 Coder 0.5B Q4 | ~400 MB | ~1 GB | Too small — hallucinates APIs |
+| General purpose | SmolLM2 135M | ~80 MB | ~256 MB | Testing/demo only |
+
+> **Important:** For ImmyGo code generation, use **7B or larger**. Smaller models cannot reliably follow the widget catalog in the system prompt and will invent non-existent APIs.
+
+Find GGUF models on [Hugging Face](https://huggingface.co/models?sort=trending&search=gguf).
 
 ### Ollama Models
 
