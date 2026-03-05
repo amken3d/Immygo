@@ -23,7 +23,7 @@ linkTitle: "ImmyGo"
 
 ImmyGo wraps [Gio](https://gioui.org) into a modern declarative widget toolkit.
 Build beautiful desktop apps in Go with a **declarative API**, **Fluent Design** tokens,
-and **pluggable AI providers** (Ollama, Claude, MCP) — no web stack required.
+and **pluggable AI providers** (Yzma, Ollama, Claude, MCP) — no web stack required.
 
 {{% /blocks/lead %}}
 
@@ -31,7 +31,19 @@ and **pluggable AI providers** (Ollama, Claude, MCP) — no web stack required.
 
 <div class="text-center mb-4">
   <h2>See It in Action</h2>
-  <p class="text-muted">The ImmyGo Showcase app — light and dark themes with 25+ built-in widgets</p>
+  <p class="text-muted">Watch ImmyGo build a native desktop UI — no web stack, just Go</p>
+</div>
+
+<div class="immygo-demo-video">
+  <video autoplay loop muted playsinline class="immygo-screenshot">
+    <source src="/images/demo.webm" type="video/webm" />
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+<div class="text-center mt-5 mb-4">
+  <h2>Showcase</h2>
+  <p class="text-muted">Light and dark themes with 25+ built-in widgets</p>
 </div>
 
 <div class="immygo-showcase-pair">
@@ -52,7 +64,7 @@ Built-in light and dark themes with semantic color tokens, typography scale, spa
 {{% /blocks/feature %}}
 
 {{% blocks/feature icon="fas fa-robot" title="AI-Powered" url="/docs/ai/" %}}
-Pluggable AI providers — Ollama for local models, Anthropic Claude API, or any MCP server. AI scaffolding, conversational dev mode, and runtime prototyping.
+Pluggable AI providers — Yzma for in-process local inference, Ollama, Anthropic Claude, or any MCP server. AI scaffolding, conversational dev mode, and runtime prototyping.
 {{% /blocks/feature %}}
 
 {{% blocks/feature icon="fas fa-th-large" title="25+ Widgets" url="/docs/widgets/" %}}
