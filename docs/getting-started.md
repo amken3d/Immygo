@@ -1,6 +1,6 @@
 # Getting Started with ImmyGo
 
-ImmyGo is a high-level Go UI framework built on [Gio](https://gioui.org) that makes building beautiful desktop applications easy. It provides Fluent Design-inspired widgets, two API levels (declarative and lower-level), and built-in AI capabilities via [Yzma](https://github.com/nicholasgasior/yzma).
+ImmyGo is a high-level Go UI framework built on [Gio](https://gioui.org) that makes building beautiful desktop applications easy. It provides Fluent Design-inspired widgets, two API levels (declarative and lower-level), and built-in AI capabilities with pluggable providers (Ollama, Anthropic Claude, MCP).
 
 ## Installation
 
@@ -40,9 +40,15 @@ go get github.com/amken3d/immygo
 # Scaffold with default template
 immygo new myapp
 
-# Or generate with AI from a description
+# Or generate with AI from a description (auto-detects Ollama, Anthropic, or MCP)
 immygo new myapp --ai "a todo list with add and delete"
+
+# With a specific provider
+immygo new myapp --ai "a calculator" --provider ollama --model codellama
+ANTHROPIC_API_KEY=sk-ant-... immygo new myapp --ai "a dashboard" --provider anthropic
 ```
+
+See the [AI Integration Guide](ai.md#provider-setup) for full provider setup instructions.
 
 ## Choosing an API Level
 
@@ -268,6 +274,9 @@ immygo dev ./myapp/
 
 # Dev server with AI assistant — type at ai> prompt to generate/modify UI
 immygo dev --ai ./myapp/
+
+# Dev server with a specific AI provider
+immygo dev --ai --provider ollama --model qwen2.5-coder ./myapp/
 
 # MCP server for Claude Code, Cursor, and other AI tools
 immygo mcp
