@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <linearGradient id="mark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF3366" />
+      <stop offset="100%" style="stop-color:#FF8833" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#33BBFF" />
+      <stop offset="100%" style="stop-color:#7C4DFF" />
+    </linearGradient>
+  </defs>
+
+  <!-- Clean white background -->
+  <rect width="600" height="600" fill="#FAFAFA"/>
+
+  <!-- The "I" mark — built from UI primitives -->
+  <g transform="translate(300, 245)">
+    
+    <!-- Main vertical bar of the I — a tall rounded "panel" -->
+    <rect x="-50" y="-120" width="100" height="240" rx="20" fill="url(#mark)"/>
+    
+    <!-- Top dot of the I — styled as a toggle/radio button -->
+    <circle cx="0" cy="-165" r="38" fill="url(#mark)"/>
+    <!-- Inner dot highlight -->
+    <circle cx="0" cy="-165" r="16" fill="#FFFFFF" fill-opacity="0.9"/>
+    
+    <!-- UI widget overlays on the bar — flat white cutouts -->
+    <!-- Slider track -->
+    <rect x="-30" y="-80" width="60" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.4"/>
+    <!-- Slider thumb -->
+    <circle cx="10" cy="-77" r="10" fill="#FFFFFF" fill-opacity="0.9"/>
+    
+    <!-- Toggle switch -->
+    <rect x="-24" y="-40" width="48" height="22" rx="11" fill="#FFFFFF" fill-opacity="0.35"/>
+    <circle cx="13" cy="-29" r="8" fill="#FFFFFF" fill-opacity="0.9"/>
+    
+    <!-- Button -->
+    <rect x="-28" y="10" width="56" height="24" rx="12" fill="#FFFFFF" fill-opacity="0.9"/>
+    <rect x="-16" y="19" width="32" height="6" rx="3" fill="url(#mark)" fill-opacity="0.5"/>
+    
+    <!-- Checkbox -->
+    <rect x="-14" y="55" width="28" height="28" rx="7" fill="#FFFFFF" fill-opacity="0.9"/>
+    <path d="M-6 69 L-1 75 L12 61" stroke="url(#mark)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Progress bar -->
+    <rect x="-30" y="100" width="60" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.3"/>
+    <rect x="-30" y="100" width="40" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  </g>
+
+  <!-- Accent orbs — flat, playful -->
+  <circle cx="165" cy="160" r="22" fill="url(#accent)" fill-opacity="0.2"/>
+  <circle cx="145" cy="320" r="14" fill="url(#mark)" fill-opacity="0.15"/>
+  <circle cx="440" cy="140" r="16" fill="url(#mark)" fill-opacity="0.12"/>
+  <circle cx="455" cy="290" r="26" fill="url(#accent)" fill-opacity="0.18"/>
+  <circle cx="420" cy="380" r="10" fill="url(#mark)" fill-opacity="0.1"/>
+
+  <!-- Wordmark -->
+  <text x="300" y="460" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="72" font-weight="900" text-anchor="middle" letter-spacing="-3" fill="#1A1A2E">
+    <tspan>immy</tspan><tspan fill="url(#mark)">go</tspan>
+  </text>
+  <text x="300" y="490" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="14" font-weight="500" text-anchor="middle" fill="#1A1A2E" fill-opacity="0.4" letter-spacing="5">DESKTOP UI FRAMEWORK</text>
+</svg>

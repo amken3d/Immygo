@@ -1,0 +1,20 @@
+// Fluent Blue branding for ImmyGo
+$primary: #0078D4;
+$secondary: #6B69D6;
+
+.td-navbar {
+  background: $primary;
+}
+
+a {
+  color: $primary;
+
+  &:hover {
+    color: darken($primary, 15%);
+  }
+}
+
+.td-sidebar-nav .td-sidebar-link.active {
+  border-color: $primary;
+  color: $primary;
+}

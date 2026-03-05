@@ -1,0 +1,17 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Build artifacts
+build/
+
+# AI assistant config
+CLAUDE.md
+
+# Hugo website build artifacts
+website/public/
+website/resources/
+website/node_modules/
+website/.hugo_build.lock
+website/package-lock.json

@@ -1,0 +1,63 @@
+baseURL = "/"
+title = "ImmyGo"
+enableRobotsTXT = true
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = false
+
+[module]
+  proxy = "direct"
+  [[module.imports]]
+    path = "github.com/google/docsy"
+  [[module.imports]]
+    path = "github.com/google/docsy/dependencies"
+
+[languages]
+  [languages.en]
+    languageName = "English"
+    weight = 1
+    contentDir = "content/en"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.parser.attribute]
+      block = true
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    style = "tango"
+
+[params]
+  description = "A high-level Go UI framework with Fluent Design aesthetics"
+  github_repo = "https://github.com/amken3d/immygo"
+  github_project_repo = "https://github.com/amken3d/immygo"
+  github_subdir = "website"
+
+  [params.ui]
+    navbar_logo = false
+    sidebar_menu_compact = true
+    sidebar_menu_foldable = true
+    breadcrumb_disable = false
+    footer_about_enable = true
+
+  [params.links]
+    [[params.links.developer]]
+      name = "GitHub"
+      url = "https://github.com/amken3d/immygo"
+      icon = "fab fa-github"
+      desc = "Source code and issues"
+
+[[menus.main]]
+  name = "Documentation"
+  weight = 10
+  url = "/docs/"
+
+[[menus.main]]
+  name = "About"
+  weight = 20
+  url = "/about/"
+
+[[menus.main]]
+  name = "GitHub"
+  weight = 30
+  url = "https://github.com/amken3d/immygo"
+  pre = "<i class='fab fa-github'></i>"
