@@ -18,7 +18,7 @@ type Provider interface {
 
 // ProviderConfig holds configuration for selecting and configuring a provider.
 type ProviderConfig struct {
-	// Provider is the provider type: "ollama", "mcp", "simulation", or "" for auto-detect.
+	// Provider is the provider type: "yzma", "ollama", "anthropic", "mcp", "simulation", or "" for auto-detect.
 	Provider string
 
 	// Model is the model name (e.g. "codellama", "qwen2.5-coder").
@@ -35,6 +35,12 @@ type ProviderConfig struct {
 
 	// AnthropicKey is the Anthropic API key. Read from ANTHROPIC_API_KEY if empty.
 	AnthropicKey string
+
+	// YzmaModelPath is the path to a GGUF model file for local Yzma inference.
+	YzmaModelPath string
+
+	// YzmaLibPath is the path to the llama.cpp shared library. Falls back to YZMA_LIB env var.
+	YzmaLibPath string
 }
 
 // simulationProvider is the fallback that returns the prompt text.

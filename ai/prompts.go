@@ -219,6 +219,12 @@ func ResolveProviderConfig(overrides ProviderConfig) ProviderConfig {
 	if cfg.AnthropicKey == "" {
 		cfg.AnthropicKey = os.Getenv("ANTHROPIC_API_KEY")
 	}
+	if cfg.YzmaModelPath == "" {
+		cfg.YzmaModelPath = os.Getenv("IMMYGO_YZMA_MODEL")
+	}
+	if cfg.YzmaLibPath == "" {
+		cfg.YzmaLibPath = os.Getenv("YZMA_LIB")
+	}
 
 	return cfg
 }
@@ -229,6 +235,12 @@ func ResolveProvider(cfg ProviderConfig) Provider {
 	cfg = ResolveProviderConfig(cfg)
 
 	switch cfg.Provider {
+	case "yzma", "local":
+		if cfg.YzmaModelPath == "" {
+			fmt.Fprintln(os.Stderr, "warning: no model path set (IMMYGO_YZMA_MODEL), falling back to simulation")
+			return &simulationProvider{}
+		}
+		return NewYzmaProvider(cfg.YzmaLibPath, cfg.YzmaModelPath, 0, 0, 0.7)
 	case "ollama":
 		return NewOllamaProvider(cfg.OllamaHost, cfg.Model)
 	case "anthropic", "claude":
@@ -246,7 +258,13 @@ func ResolveProvider(cfg ProviderConfig) Provider {
 	case "simulation":
 		return &simulationProvider{}
 	case "":
-		// Auto-detect: try Ollama first
+		// Auto-detect: try Yzma first (fully local, no server needed)
+		if YzmaAvailable(cfg.YzmaLibPath, cfg.YzmaModelPath) {
+			p := NewYzmaProvider(cfg.YzmaLibPath, cfg.YzmaModelPath, 0, 0, 0.7)
+			fmt.Fprintf(os.Stderr, "  \033[90mUsing provider:\033[0m %s\n", p.Name())
+			return p
+		}
+		// Try Ollama
 		if OllamaAvailable(cfg.OllamaHost) {
 			p := NewOllamaProvider(cfg.OllamaHost, cfg.Model)
 			fmt.Fprintf(os.Stderr, "  \033[90mUsing provider:\033[0m %s\n", p.Name())
@@ -266,9 +284,10 @@ func ResolveProvider(cfg ProviderConfig) Provider {
 		}
 		// Fallback to simulation
 		fmt.Fprintln(os.Stderr, "\033[33mwarning: no AI provider available\033[0m")
-		fmt.Fprintln(os.Stderr, "\033[33m  Option 1: Install Ollama (https://ollama.com) then: ollama pull qwen2.5-coder\033[0m")
-		fmt.Fprintln(os.Stderr, "\033[33m  Option 2: Set ANTHROPIC_API_KEY for Claude\033[0m")
-		fmt.Fprintln(os.Stderr, "\033[33m  Option 3: Set IMMYGO_MCP_COMMAND for an MCP server\033[0m")
+		fmt.Fprintln(os.Stderr, "\033[33m  Option 1: Set YZMA_LIB + IMMYGO_YZMA_MODEL for local inference (no server)\033[0m")
+		fmt.Fprintln(os.Stderr, "\033[33m  Option 2: Install Ollama (https://ollama.com) then: ollama pull qwen2.5-coder\033[0m")
+		fmt.Fprintln(os.Stderr, "\033[33m  Option 3: Set ANTHROPIC_API_KEY for Claude\033[0m")
+		fmt.Fprintln(os.Stderr, "\033[33m  Option 4: Set IMMYGO_MCP_COMMAND for an MCP server\033[0m")
 		return &simulationProvider{}
 	default:
 		fmt.Fprintf(os.Stderr, "warning: unknown provider %q, falling back to simulation\n", cfg.Provider)

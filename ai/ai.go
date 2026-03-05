@@ -11,10 +11,10 @@ import (
 
 // Config holds the configuration for the AI engine.
 type Config struct {
-	// ModelPath is the path to the GGUF model file (for future Yzma integration).
+	// ModelPath is the path to the GGUF model file for local Yzma inference.
 	ModelPath string
 
-	// LibPath is the path to the llama.cpp shared library (for future Yzma integration).
+	// LibPath is the path to the llama.cpp shared library for Yzma.
 	LibPath string
 
 	// ContextSize is the context window size for the model.

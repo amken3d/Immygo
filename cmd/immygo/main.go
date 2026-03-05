@@ -88,6 +88,16 @@ func parseDevArgs(args []string) (target string, aiEnabled bool, pcfg ai.Provide
 				i++
 				pcfg.MCPTool = args[i]
 			}
+		case "--yzma-model":
+			if i+1 < len(args) {
+				i++
+				pcfg.YzmaModelPath = args[i]
+			}
+		case "--yzma-lib":
+			if i+1 < len(args) {
+				i++
+				pcfg.YzmaLibPath = args[i]
+			}
 		default:
 			target = args[i]
 		}
@@ -124,6 +134,16 @@ func parseNewArgs(args []string) (name, aiDesc string, pcfg ai.ProviderConfig) {
 				i++
 				pcfg.MCPTool = args[i]
 			}
+		case "--yzma-model":
+			if i+1 < len(args) {
+				i++
+				pcfg.YzmaModelPath = args[i]
+			}
+		case "--yzma-lib":
+			if i+1 < len(args) {
+				i++
+				pcfg.YzmaLibPath = args[i]
+			}
 		default:
 			if name == "" {
 				name = args[i]
@@ -149,14 +169,18 @@ Commands:
   help                      Show this help
 
 AI Provider Options (for dev --ai and new --ai):
-  --provider <name>         Provider: ollama, anthropic, mcp, simulation (default: auto-detect)
+  --provider <name>         Provider: yzma, ollama, anthropic, mcp, simulation (default: auto-detect)
   --model <name>            Model name (default: qwen2.5-coder for Ollama)
+  --yzma-model <path>       Path to GGUF model file for local Yzma inference
+  --yzma-lib <path>         Path to llama.cpp shared library (or set YZMA_LIB)
   --mcp-command <cmd>       MCP server command (e.g. "npx @some/mcp-server")
   --mcp-tool <name>         MCP tool name to call (default: immygo_generate_code)
 
 Environment Variables:
   IMMYGO_PROVIDER           Same as --provider
   IMMYGO_MODEL              Same as --model
+  IMMYGO_YZMA_MODEL         Same as --yzma-model
+  YZMA_LIB                  Same as --yzma-lib
   IMMYGO_OLLAMA_HOST        Ollama API URL (default: http://localhost:11434)
   IMMYGO_MCP_COMMAND        Same as --mcp-command
   IMMYGO_MCP_TOOL           Same as --mcp-tool
@@ -166,6 +190,7 @@ Examples:
   immygo dev                                         # Watch current directory
   immygo dev ./examples/hello                        # Watch specific directory
   immygo dev --ai ./examples/hello                   # Watch with AI (auto-detect provider)
+  immygo dev --ai --provider yzma --yzma-model ~/models/qwen2.5-coder.gguf
   immygo dev --ai --provider ollama --model codellama # Use specific Ollama model
   immygo new myapp                                   # Create new project
   immygo new myapp --ai "a calculator"               # AI-generated calculator app
