@@ -72,6 +72,36 @@ Add to your `.mcp.json`:
 
 Three tools: `immygo_widget_catalog` (API reference), `immygo_generate_code` (code from description), `immygo_search_docs` (search docs).
 
+### Live Reload
+
+Edit code and see changes instantly — no manual restart:
+
+```bash
+immygo dev ./myapp/
+```
+
+The dev server watches your files, rebuilds on save, and restarts the app automatically. Pair it with `--ai` for AI-assisted development.
+
+### Layout Debugger
+
+Inspect every widget's constraints and rendered size at runtime:
+
+```bash
+IMMYGO_DEBUG=1 go run ./myapp/
+```
+
+Prints a JSON tree of the entire layout hierarchy to stderr — showing min/max constraints and actual sizes for every widget. Add AI-powered analysis of layout issues:
+
+```bash
+IMMYGO_DEBUG=1 IMMYGO_DEBUG_AI=1 go run ./myapp/
+```
+
+Or enable programmatically:
+
+```go
+ui.EnableDebug()
+```
+
 ---
 
 ## Getting Started
@@ -247,12 +277,6 @@ Add local LLM capabilities with zero API keys:
 engine := ai.NewEngine(ai.Config{ModelPath: "model.gguf"})
 assistant := ai.NewAssistant("Helper", engine)
 chatPanel := ai.NewChatPanel(assistant)
-```
-
-### Layout Debugging
-
-```bash
-IMMYGO_DEBUG=1 go run ./myapp/
 ```
 
 ### Escape Hatch to Raw Gio
