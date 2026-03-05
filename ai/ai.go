@@ -1,7 +1,6 @@
-// Package ai provides AI capabilities for ImmyGo applications using Yzma.
-// It enables local LLM inference for features like smart autocomplete,
-// chat assistants, content generation, and intelligent UI behaviors —
-// all running on-device with no external API calls required.
+// Package ai provides AI capabilities for ImmyGo applications.
+// It supports multiple backends: Ollama (local models), MCP (external AI tools),
+// and a simulation fallback for development.
 package ai
 
 import (
@@ -12,11 +11,10 @@ import (
 
 // Config holds the configuration for the AI engine.
 type Config struct {
-	// ModelPath is the path to the GGUF model file.
+	// ModelPath is the path to the GGUF model file (for future Yzma integration).
 	ModelPath string
 
-	// LibPath is the path to the llama.cpp shared library.
-	// If empty, it will search standard locations.
+	// LibPath is the path to the llama.cpp shared library (for future Yzma integration).
 	LibPath string
 
 	// ContextSize is the context window size for the model.
@@ -30,6 +28,9 @@ type Config struct {
 
 	// SystemPrompt is prepended to all conversations.
 	SystemPrompt string
+
+	// ProviderConfig configures the LLM provider backend.
+	ProviderConfig ProviderConfig
 }
 
 // DefaultConfig returns a sensible default configuration.
@@ -64,10 +65,10 @@ type StreamToken struct {
 	Error error
 }
 
-// Engine is the core AI engine that wraps Yzma for local inference.
-// It provides both synchronous and streaming generation APIs.
+// Engine is the core AI engine that routes inference to a Provider.
 type Engine struct {
 	config   Config
+	provider Provider
 	mu       sync.Mutex
 	loaded   bool
 	messages []Message
@@ -83,12 +84,15 @@ func NewEngine(config Config) *Engine {
 	}
 }
 
-// Load initializes the engine by loading the model.
-// This must be called before any generation. It can be called from a goroutine
-// to avoid blocking the UI.
-//
-// When Yzma is available, this loads the GGUF model via llama.cpp bindings.
-// For now, it provides a simulation interface for development and testing.
+// NewEngineWithProvider creates an engine with an explicit provider.
+func NewEngineWithProvider(config Config, provider Provider) *Engine {
+	e := NewEngine(config)
+	e.provider = provider
+	e.loaded = true
+	return e
+}
+
+// Load initializes the engine by resolving and connecting to a provider.
 func (e *Engine) Load() error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -97,22 +101,27 @@ func (e *Engine) Load() error {
 		return nil
 	}
 
-	// TODO: Integrate actual Yzma loading when available:
-	//   llama.Load(e.config.LibPath)
-	//   llama.Init()
-	//   model, err := llama.ModelLoadFromFile(e.config.ModelPath, llama.ModelDefaultParams())
-	//   ...
-	//
-	// For development, the engine works in simulation mode.
+	if e.provider == nil {
+		e.provider = ResolveProvider(e.config.ProviderConfig)
+	}
+
 	e.loaded = true
 	return nil
 }
 
-// IsLoaded returns whether the model is loaded and ready.
+// IsLoaded returns whether the engine is ready.
 func (e *Engine) IsLoaded() bool {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	return e.loaded
+}
+
+// ProviderName returns the name of the active provider.
+func (e *Engine) ProviderName() string {
+	if e.provider == nil {
+		return "none"
+	}
+	return e.provider.Name()
 }
 
 // Complete generates a response for the given prompt.
@@ -124,17 +133,14 @@ func (e *Engine) Complete(ctx context.Context, prompt string) (string, error) {
 		return "", fmt.Errorf("engine not loaded: call Load() first")
 	}
 
-	// Add user message
 	e.messages = append(e.messages, Message{Role: RoleUser, Content: prompt})
 
-	// TODO: Replace with actual Yzma inference:
-	//   tokens := llama.Tokenize(vocab, formatMessages(e.messages), true, false)
-	//   batch := llama.BatchGetOne(tokens)
-	//   llama.Decode(ctx, batch)
-	//   ... sample tokens until EOS ...
-	//
-	// Simulation response for development
-	response := fmt.Sprintf("AI response to: %s (model: %s)", prompt, e.config.ModelPath)
+	response, err := e.provider.Complete(ctx, e.config.SystemPrompt, e.messages)
+	if err != nil {
+		// Remove the failed message
+		e.messages = e.messages[:len(e.messages)-1]
+		return "", err
+	}
 
 	e.messages = append(e.messages, Message{Role: RoleAssistant, Content: response})
 	return response, nil
@@ -149,6 +155,11 @@ func (e *Engine) CompleteStream(ctx context.Context, prompt string) <-chan Strea
 
 		e.mu.Lock()
 		loaded := e.loaded
+		provider := e.provider
+		e.messages = append(e.messages, Message{Role: RoleUser, Content: prompt})
+		msgs := make([]Message, len(e.messages))
+		copy(msgs, e.messages)
+		systemPrompt := e.config.SystemPrompt
 		e.mu.Unlock()
 
 		if !loaded {
@@ -156,23 +167,20 @@ func (e *Engine) CompleteStream(ctx context.Context, prompt string) <-chan Strea
 			return
 		}
 
-		// TODO: Replace with actual Yzma streaming inference
-		// For now, simulate token-by-token streaming
-		response := fmt.Sprintf("AI response to: %s", prompt)
-		words := splitWords(response)
-
-		for i, word := range words {
-			select {
-			case <-ctx.Done():
-				ch <- StreamToken{Error: ctx.Err()}
+		stream := provider.CompleteStream(ctx, systemPrompt, msgs)
+		var full string
+		for tok := range stream {
+			if tok.Error != nil {
+				ch <- tok
 				return
-			default:
-				ch <- StreamToken{
-					Text: word,
-					Done: i == len(words)-1,
-				}
 			}
+			full += tok.Text
+			ch <- tok
 		}
+
+		e.mu.Lock()
+		e.messages = append(e.messages, Message{Role: RoleAssistant, Content: full})
+		e.mu.Unlock()
 	}()
 
 	return ch
@@ -194,23 +202,4 @@ func (e *Engine) History() []Message {
 	result := make([]Message, len(e.messages))
 	copy(result, e.messages)
 	return result
-}
-
-func splitWords(s string) []string {
-	var words []string
-	current := ""
-	for _, r := range s {
-		if r == ' ' {
-			if current != "" {
-				words = append(words, current+" ")
-				current = ""
-			}
-		} else {
-			current += string(r)
-		}
-	}
-	if current != "" {
-		words = append(words, current)
-	}
-	return words
 }

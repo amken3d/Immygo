@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 )
 
@@ -195,19 +196,116 @@ Requirements:
 Return ONLY the Go source code, no explanation.`, appName, description)
 }
 
+// ResolveProviderConfig builds a ProviderConfig from environment variables,
+// with explicit overrides taking priority.
+func ResolveProviderConfig(overrides ProviderConfig) ProviderConfig {
+	cfg := overrides
+
+	if cfg.Provider == "" {
+		cfg.Provider = os.Getenv("IMMYGO_PROVIDER")
+	}
+	if cfg.Model == "" {
+		cfg.Model = os.Getenv("IMMYGO_MODEL")
+	}
+	if cfg.OllamaHost == "" {
+		cfg.OllamaHost = os.Getenv("IMMYGO_OLLAMA_HOST")
+	}
+	if cfg.MCPCommand == "" {
+		cfg.MCPCommand = os.Getenv("IMMYGO_MCP_COMMAND")
+	}
+	if cfg.MCPTool == "" {
+		cfg.MCPTool = os.Getenv("IMMYGO_MCP_TOOL")
+	}
+	if cfg.AnthropicKey == "" {
+		cfg.AnthropicKey = os.Getenv("ANTHROPIC_API_KEY")
+	}
+
+	return cfg
+}
+
+// ResolveProvider creates a Provider based on the given config.
+// If Provider is empty, it auto-detects: tries Ollama first, then MCP, then simulation.
+func ResolveProvider(cfg ProviderConfig) Provider {
+	cfg = ResolveProviderConfig(cfg)
+
+	switch cfg.Provider {
+	case "ollama":
+		return NewOllamaProvider(cfg.OllamaHost, cfg.Model)
+	case "anthropic", "claude":
+		if cfg.AnthropicKey == "" {
+			fmt.Fprintln(os.Stderr, "warning: ANTHROPIC_API_KEY not set, falling back to simulation")
+			return &simulationProvider{}
+		}
+		return NewAnthropicProvider(cfg.AnthropicKey, cfg.Model)
+	case "mcp":
+		if cfg.MCPCommand == "" {
+			fmt.Fprintln(os.Stderr, "warning: IMMYGO_MCP_COMMAND not set, falling back to simulation")
+			return &simulationProvider{}
+		}
+		return NewMCPClientProvider(cfg.MCPCommand, cfg.MCPTool)
+	case "simulation":
+		return &simulationProvider{}
+	case "":
+		// Auto-detect: try Ollama first
+		if OllamaAvailable(cfg.OllamaHost) {
+			p := NewOllamaProvider(cfg.OllamaHost, cfg.Model)
+			fmt.Fprintf(os.Stderr, "  \033[90mUsing provider:\033[0m %s\n", p.Name())
+			return p
+		}
+		// Try Anthropic if key is available
+		if cfg.AnthropicKey != "" {
+			p := NewAnthropicProvider(cfg.AnthropicKey, cfg.Model)
+			fmt.Fprintf(os.Stderr, "  \033[90mUsing provider:\033[0m %s\n", p.Name())
+			return p
+		}
+		// Try MCP if configured
+		if cfg.MCPCommand != "" {
+			p := NewMCPClientProvider(cfg.MCPCommand, cfg.MCPTool)
+			fmt.Fprintf(os.Stderr, "  \033[90mUsing provider:\033[0m %s\n", p.Name())
+			return p
+		}
+		// Fallback to simulation
+		fmt.Fprintln(os.Stderr, "\033[33mwarning: no AI provider available\033[0m")
+		fmt.Fprintln(os.Stderr, "\033[33m  Option 1: Install Ollama (https://ollama.com) then: ollama pull qwen2.5-coder\033[0m")
+		fmt.Fprintln(os.Stderr, "\033[33m  Option 2: Set ANTHROPIC_API_KEY for Claude\033[0m")
+		fmt.Fprintln(os.Stderr, "\033[33m  Option 3: Set IMMYGO_MCP_COMMAND for an MCP server\033[0m")
+		return &simulationProvider{}
+	default:
+		fmt.Fprintf(os.Stderr, "warning: unknown provider %q, falling back to simulation\n", cfg.Provider)
+		return &simulationProvider{}
+	}
+}
+
 var (
 	defaultAssistant     *Assistant
 	defaultAssistantOnce sync.Once
+	defaultProviderCfg   ProviderConfig
+	defaultProviderMu    sync.Mutex
 )
 
+// SetDefaultProviderConfig sets the provider config used by DefaultAssistant.
+// Must be called before the first call to DefaultAssistant().
+func SetDefaultProviderConfig(cfg ProviderConfig) {
+	defaultProviderMu.Lock()
+	defer defaultProviderMu.Unlock()
+	defaultProviderCfg = cfg
+}
+
 // DefaultAssistant returns a singleton Assistant configured for ImmyGo code generation.
+// It auto-detects available providers unless configured via SetDefaultProviderConfig.
 func DefaultAssistant() *Assistant {
 	defaultAssistantOnce.Do(func() {
+		defaultProviderMu.Lock()
+		pcfg := defaultProviderCfg
+		defaultProviderMu.Unlock()
+
+		provider := ResolveProvider(pcfg)
+
 		cfg := DefaultConfig()
 		cfg.SystemPrompt = ImmyGoSystemPrompt()
 		cfg.MaxTokens = 2048
-		engine := NewEngine(cfg)
-		_ = engine.Load()
+
+		engine := NewEngineWithProvider(cfg, provider)
 		defaultAssistant = NewAssistant("ImmyGo Assistant", engine)
 	})
 	return defaultAssistant
