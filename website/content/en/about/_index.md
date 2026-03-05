@@ -25,6 +25,6 @@ ImmyGo is a Go UI framework that wraps [Gio](https://gioui.org) into an Avalonia
 
 - [GitHub Repository](https://github.com/amken3d/immygo)
 - [Gio — the rendering engine](https://gioui.org)
-- [Yzma — local LLM inference](https://github.com/nicholasgasior/yzma)
+- [Yzma — local LLM inference](https://github.com/hybridgroup/yzma)
 
 {{% /blocks/section %}}
