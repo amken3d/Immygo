@@ -4,7 +4,9 @@
 
 # ImmyGo
 
-**AI-first Go UI framework.** Describe what you want, and ImmyGo builds it. A high-level framework built on [Gio](https://gioui.org) with [Fluent Design](https://fluent2.microsoft.design/) aesthetics and local AI capabilities via [Yzma](https://github.com/hybridgroup/yzma).
+visit the website at https://immygo.app
+
+**AI-first Go UI framework.** Describe what you want, and ImmyGo builds it. A high-level framework built on [Gio](https://gioui.org) with [Fluent Design](https://fluent2.microsoft.design/) aesthetics and local AI capabilities via [Yzma](https://github.com/hybridgroup/yzma), Ollama and Anthropic API.
 
 ## Build UIs with AI
 
