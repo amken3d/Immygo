@@ -188,6 +188,8 @@ type Center struct{}
 
 // Layout centers the child widget.
 func (Center) Layout(gtx Context, w Widget) Dimensions {
+	// Relax minimum constraints so children report their natural size.
+	gtx.Constraints.Min = image.Point{}
 	macro := op.Record(gtx.Ops)
 	dims := w(gtx)
 	call := macro.Stop()

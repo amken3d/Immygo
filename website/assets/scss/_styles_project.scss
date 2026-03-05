@@ -18,3 +18,188 @@ a {
   border-color: $primary;
   color: $primary;
 }
+
+// Hero landing page
+.immygo-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.immygo-logo {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.08));
+}
+
+.immygo-title {
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: -2px;
+  color: #1A1A2E;
+  margin-bottom: 0;
+}
+
+.immygo-go {
+  background: linear-gradient(135deg, #FF3366, #FF8833);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+// Override cover block for white hero background
+.td-cover-block {
+  &.td-cover--white {
+    background: #FAFAFA !important;
+    color: #1A1A2E;
+
+    .lead {
+      color: #444;
+    }
+  }
+}
+
+// Force all code blocks to have dark bg + light text regardless of section
+.td-box pre,
+.td-content pre {
+  background: #1e1e2e !important;
+  color: #cdd6f4 !important;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow-x: auto;
+
+  code {
+    background: transparent !important;
+    color: inherit !important;
+  }
+
+  // Override all syntax highlight token colors to light shades
+  .highlight &,
+  & {
+    span {
+      color: #cdd6f4 !important;
+    }
+    .kd, .kn, .k, .kt { color: #cba6f7 !important; } // keywords — purple
+    .s, .s1, .s2, .sa { color: #a6e3a1 !important; }  // strings — green
+    .nx, .nf { color: #89b4fa !important; }            // names/functions — blue
+    .nc { color: #f9e2af !important; }                  // class names — yellow
+    .mi, .mf, .il { color: #fab387 !important; }       // numbers — peach
+    .c, .c1, .cm, .cp { color: #6c7086 !important; }   // comments — muted
+    .o, .p { color: #cdd6f4 !important; }              // operators/punctuation
+    .nb { color: #89dceb !important; }                  // builtins — teal
+  }
+}
+
+// Inline code on any background
+.td-box code {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1A1A2E;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+// Inline code on dark sections needs inverted colors
+.td-box--dark code,
+.td-box--primary code {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+// Ensure text visibility in sections
+.td-box {
+  // Light/default sections: dark text
+  &--white, &--light, &--0, &--1 {
+    h2, h3, h4, p, li {
+      color: #1A1A2E;
+    }
+  }
+
+  // Dark sections: light text
+  &--dark, &--primary, &--4, &--5 {
+    h2, h3, h4, p, li {
+      color: #fff;
+    }
+  }
+}
+
+// Showcase light/dark pair — side by side
+.immygo-showcase-pair {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  img {
+    flex: 1 1 45%;
+    min-width: 300px;
+    max-width: 580px;
+  }
+}
+
+// Screenshot styling
+.immygo-screenshot {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+// Widget gallery grid
+.immygo-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.immygo-gallery-item {
+  margin: 0;
+  text-align: center;
+
+  img {
+    margin-bottom: 0.75rem;
+  }
+
+  figcaption {
+    font-size: 0.9rem;
+    color: #666;
+  }
+}
+
+// Inline widget screenshots in docs
+.immygo-widget-img {
+  max-width: 100%;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  margin: 1rem 0;
+}
+
+@media (min-width: 768px) {
+  .immygo-logo {
+    width: 280px;
+    height: 280px;
+  }
+
+  .immygo-title {
+    font-size: 5.5rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .immygo-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .immygo-showcase-pair img {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}

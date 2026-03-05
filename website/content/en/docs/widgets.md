@@ -38,6 +38,8 @@ btn.Layout(gtx, th)
 
 ## Text
 
+<img src="/images/Labels.png" alt="Text and Labels" class="immygo-widget-img" />
+
 Renders styled text with the typography scale.
 
 ### Declarative
@@ -75,6 +77,8 @@ widget.NewLabel("Custom").
 ---
 
 ## Button
+
+<img src="/images/buttons.png" alt="Button variants" class="immygo-widget-img" />
 
 A clickable button with six built-in variants.
 
@@ -158,6 +162,8 @@ nameField.SetText("Alice")
 
 ## Toggle
 
+<img src="/images/Toggle.png" alt="Toggle switch" class="immygo-widget-img" />
+
 A Fluent Design switch with smooth knob and track animation.
 
 ### Declarative
@@ -184,6 +190,8 @@ darkMode.Layout(gtx, th)
 
 ## Checkbox
 
+<img src="/images/checkbox.png" alt="Checkbox" class="immygo-widget-img" />
+
 A checkbox with label and animated check mark.
 
 ### Declarative
@@ -207,6 +215,8 @@ agreed.Layout(gtx, th)
 ---
 
 ## Slider
+
+<img src="/images/slider.png" alt="Slider" class="immygo-widget-img" />
 
 A horizontal range input with drag interaction.
 
@@ -234,6 +244,8 @@ slider.ActualValue() // current value in min..max range
 ---
 
 ## RadioGroup
+
+<img src="/images/radio.png" alt="Radio Group" class="immygo-widget-img" />
 
 Mutually exclusive radio buttons with animated selection.
 
@@ -319,6 +331,8 @@ widget.NewCard().
 
 ## Icon
 
+<img src="/images/icons.png" alt="Icons" class="immygo-widget-img" />
+
 32 built-in vector icons drawn with GPU paths. Scale and color freely.
 
 ### Declarative
@@ -343,6 +357,8 @@ widget.NewIcon(widget.IconHome).WithSize(32).WithColor(col).Layout(gtx, th)
 ---
 
 ## Badge / Chip
+
+<img src="/images/badges.png" alt="Badges" class="immygo-widget-img" />
 
 Small label badges with color variants.
 
@@ -369,6 +385,8 @@ widget.NewBadge("New").
 ---
 
 ## Progress Bar
+
+<img src="/images/progress.png" alt="Progress Bar" class="immygo-widget-img" />
 
 A horizontal progress indicator with animated fill.
 
@@ -768,6 +786,8 @@ drawer.Layout(gtx, th)
 
 ## Snackbar / Toast
 
+<img src="/images/snackbar.png" alt="Snackbar Notifications" class="immygo-widget-img" />
+
 Non-blocking toast notifications that auto-dismiss.
 
 ### Declarative
@@ -797,6 +817,8 @@ snack.Layout(gtx, th)
 ---
 
 ## ContextMenu
+
+<img src="/images/context.png" alt="Context Menu" class="immygo-widget-img" />
 
 Right-click context menu overlay.
 
@@ -855,6 +877,8 @@ picker.Layout(gtx, th)
 ---
 
 ## RichText
+
+<img src="/images/richtext.png" alt="Rich Text" class="immygo-widget-img" />
 
 Multiple styled text spans on a single line.
 

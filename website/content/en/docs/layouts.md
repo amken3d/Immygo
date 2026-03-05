@@ -140,6 +140,8 @@ ui.VStack(
 
 ### ZStack — Overlapping Layers with Alignment
 
+<img src="/images/zstack.png" alt="ZStack overlay layout" class="immygo-widget-img" />
+
 Overlays multiple children with configurable alignment:
 
 ```go

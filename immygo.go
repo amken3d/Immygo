@@ -52,4 +52,4 @@
 //   - Go-idiomatic: No code generation, no macros, just Go
 package immygo
 
-const Version = "0.1.0"
+const Version = "0.1.1"
