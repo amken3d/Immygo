@@ -157,27 +157,9 @@ func (c *centeredView) Padding(dp unit.Dp) *Styled        { return Style(c).Padd
 func (c *centeredView) Background(cc color.NRGBA) *Styled { return Style(c).Background(cc) }
 
 func (c *centeredView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
-	// Let the child size to its natural content by zeroing Min.
-	cgtx := gtx
-	cgtx.Constraints.Min = image.Point{}
-	macro := op.Record(gtx.Ops)
-	dims := c.child.layout(cgtx, th)
-	call := macro.Stop()
-
-	x := (gtx.Constraints.Max.X - dims.Size.X) / 2
-	y := (gtx.Constraints.Max.Y - dims.Size.Y) / 2
-	if x < 0 {
-		x = 0
-	}
-	if y < 0 {
-		y = 0
-	}
-
-	off := op.Offset(image.Pt(x, y)).Push(gtx.Ops)
-	call.Add(gtx.Ops)
-	off.Pop()
-
-	return layout.Dimensions{Size: gtx.Constraints.Max}
+	return layout.Center.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return c.child.layout(gtx, th)
+	})
 }
 
 // --- Expanded ---

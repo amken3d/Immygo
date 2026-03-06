@@ -138,6 +138,12 @@ func (d *DropdownView) SelectedText() string {
 	return ""
 }
 
+// SetSelected sets the selected index programmatically.
+func (d *DropdownView) SetSelected(index int) *DropdownView {
+	d.dd.SelectedIndex = index
+	return d
+}
+
 // DDWidth sets the dropdown width.
 func (d *DropdownView) DDWidth(w unit.Dp) *DropdownView {
 	d.dd.WithWidth(w)

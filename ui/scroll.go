@@ -62,6 +62,29 @@ func (s *scrollView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensio
 	})
 }
 
+// ScrollPersistent creates a vertical scrollable container using the provided
+// list widget. The list must be stored at package level (or otherwise persist
+// across frames) so that scroll position is retained.
+//
+//	var myList widget.List
+//	func init() { myList.Axis = layout.Vertical }
+//	// in build func:
+//	ui.ScrollPersistent(&myList, content)
+func ScrollPersistent(list *giowidget.List, child View) ViewFunc {
+	return func(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+		return list.Layout(gtx, 1, func(gtx layout.Context, _ int) layout.Dimensions {
+			if list.Axis == layout.Vertical {
+				gtx.Constraints.Max.Y = 1e6
+				gtx.Constraints.Min.Y = 0
+			} else {
+				gtx.Constraints.Max.X = 1e6
+				gtx.Constraints.Min.X = 0
+			}
+			return child.layout(gtx, th)
+		})
+	}
+}
+
 // ScrollList creates a scrollable list from a slice of views.
 // Unlike Scroll(VStack(...)), this uses Gio's list widget for
 // efficient rendering of many items (only visible items are laid out).

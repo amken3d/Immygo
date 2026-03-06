@@ -124,13 +124,19 @@ func (cp *ChatPanel) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensio
 	}
 
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return cp.layoutInput(gtx, th)
+		}),
 		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 			cp.mu.Lock()
 			msgs := make([]Message, len(cp.Messages))
 			copy(msgs, cp.Messages)
 			cp.mu.Unlock()
 
-			return cp.list.Layout(gtx, len(msgs), func(gtx layout.Context, index int) layout.Dimensions {
+			n := len(msgs)
+			return cp.list.Layout(gtx, n, func(gtx layout.Context, index int) layout.Dimensions {
+				// Reverse order: newest messages at top.
+				msg := msgs[n-1-index]
 				inset := layout.Inset{
 					Top:    unit.Dp(4),
 					Bottom: unit.Dp(4),
@@ -138,13 +144,10 @@ func (cp *ChatPanel) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensio
 					Right:  unit.Dp(8),
 				}
 				return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					bubble := &ChatBubble{Message: msgs[index]}
+					bubble := &ChatBubble{Message: msg}
 					return bubble.Layout(gtx, th)
 				})
 			})
-		}),
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return cp.layoutInput(gtx, th)
 		}),
 	)
 }
@@ -213,6 +216,37 @@ func (cp *ChatPanel) layoutInput(gtx layout.Context, th *theme.Theme) layout.Dim
 			})
 		}),
 	)
+}
+
+// SendMessage programmatically sends a message through the chat panel,
+// as if the user typed it and pressed Enter. The message appears in the
+// chat history and the response is displayed when it arrives.
+func (cp *ChatPanel) SendMessage(text string) {
+	if text == "" {
+		return
+	}
+	cp.mu.Lock()
+	cp.Messages = append(cp.Messages, Message{Role: RoleUser, Content: text})
+	cp.sending = true
+	cp.mu.Unlock()
+
+	go func() {
+		resp, err := cp.Assistant.Chat(context.Background(), text)
+		cp.mu.Lock()
+		defer cp.mu.Unlock()
+		cp.sending = false
+		if err != nil {
+			cp.Messages = append(cp.Messages, Message{
+				Role:    RoleAssistant,
+				Content: "Error: " + err.Error(),
+			})
+		} else {
+			cp.Messages = append(cp.Messages, Message{
+				Role:    RoleAssistant,
+				Content: resp,
+			})
+		}
+	}()
 }
 
 func (cp *ChatPanel) send() {

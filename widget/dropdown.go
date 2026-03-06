@@ -131,22 +131,21 @@ func (dd *DropDown) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 
 	width := gtx.Dp(dd.Width)
 
-	// Layout header + popup in a stack
-	return layout.Stack{}.Layout(gtx,
-		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-			headerDims := dd.layoutHeader(gtx, th, width)
+	// Render header
+	headerDims := dd.layoutHeader(gtx, th, width)
 
-			// Popup below header
-			openProgress := dd.openAnim.Value()
-			if openProgress > 0.01 {
-				popupOff := op.Offset(image.Pt(0, headerDims.Size.Y+4)).Push(gtx.Ops)
-				dd.layoutPopup(gtx, th, width, openProgress)
-				popupOff.Pop()
-			}
+	// Render popup using deferred ops so it draws above parent clip regions
+	openProgress := dd.openAnim.Value()
+	if openProgress > 0.01 {
+		macro := op.Record(gtx.Ops)
+		popupOff := op.Offset(image.Pt(0, headerDims.Size.Y+4)).Push(gtx.Ops)
+		dd.layoutPopup(gtx, th, width, openProgress)
+		popupOff.Pop()
+		call := macro.Stop()
+		op.Defer(gtx.Ops, call)
+	}
 
-			return headerDims
-		}),
-	)
+	return headerDims
 }
 
 func (dd *DropDown) layoutHeader(gtx layout.Context, th *theme.Theme, width int) layout.Dimensions {

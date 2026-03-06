@@ -110,6 +110,13 @@ func (a *Assistant) Summarize(ctx context.Context, text string) (string, error) 
 	return a.engine.Complete(ctx, prompt)
 }
 
+// LoadErr returns the error from the last load attempt, if any.
+func (a *Assistant) LoadErr() error {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.loadErr
+}
+
 // ClearHistory resets the conversation.
 func (a *Assistant) ClearHistory() {
 	a.engine.ClearHistory()

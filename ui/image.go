@@ -8,6 +8,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 
 	"github.com/amken3d/immygo/theme"
 )
@@ -66,19 +67,21 @@ func (i *ImageView) layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 
 	size := image.Point{X: w, Y: h}
 
+	// Use Gio's widget.Image for proper scaling.
+	imgOp := paint.NewImageOp(i.src)
+	gioImg := widget.Image{
+		Src:      imgOp,
+		Fit:      widget.Contain,
+		Position: layout.Center,
+	}
+
 	// Clip to rounded corners if set.
 	if i.radius > 0 {
 		r := gtx.Dp(i.radius)
 		rr := clip.UniformRRect(image.Rectangle{Max: size}, r)
 		defer rr.Push(gtx.Ops).Pop()
-	} else {
-		defer clip.Rect(image.Rectangle{Max: size}).Push(gtx.Ops).Pop()
 	}
 
-	imgOp := paint.NewImageOp(i.src)
-	imgOp.Filter = paint.FilterLinear
-	imgOp.Add(gtx.Ops)
-	paint.PaintOp{}.Add(gtx.Ops)
-
-	return layout.Dimensions{Size: size}
+	gtx.Constraints = layout.Exact(size)
+	return gioImg.Layout(gtx)
 }
