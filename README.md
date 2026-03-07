@@ -362,3 +362,6 @@ MIT
 ## Development Notes
 This project was built with significant AI assistance (primarily Claude Opus4.6 by Anthropic) for code generation, documentation, and scaffolding. Architecture, design decisions, hardware domain knowledge, and review are my own. I’m a solo founder shipping across embedded hardware, firmware, and desktop software — AI-assisted development is core to how I work at that breadth.
 ImmyGo itself is designed to be AI-first, so this is consistent with the project’s own philosophy rather than something to hide.
+
+## Amken LLC's AI Policy
+[Amken_AI-Policy.md](Amken_AI-Policy.md)
