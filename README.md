@@ -1,18 +1,18 @@
 <table>
   <tr>
     <td align="center">
-      <img src="assets/Showcase1.png" alt="Showcase 1" width="200">
+      <img src="assets/Showcase1.png" alt="Showcase 1" width="400">
     </td>
     <td align="center">
-      <img src="assets/Showcase2.png" alt="Showcase 2" width="200">
+      <img src="assets/Showcase2.png" alt="Showcase 2" width="400">
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="assets/Showcase3.png" alt="Showcase 3" width="200">
+      <img src="assets/Showcase3.png" alt="Showcase 3" width="400">
     </td>
     <td align="center">
-      <img src="assets/Showcase4.png" alt="Showcase 4" width="200">
+      <img src="assets/Showcase4.png" alt="Showcase 4" width="400">
     </td>
   </tr>
 </table>
