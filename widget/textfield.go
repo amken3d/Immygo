@@ -22,6 +22,12 @@ type TextField struct {
 	Disabled     bool
 	OnSubmit     func(string)
 
+	// HelperText shows below the field in muted color when ErrorText is empty.
+	HelperText string
+	// ErrorText shows below the field in the error color and turns the border
+	// and focus ring red. Takes precedence over HelperText.
+	ErrorText string
+
 	Editor  giowidget.Editor
 	focused bool
 
@@ -30,9 +36,11 @@ type TextField struct {
 }
 
 // NewTextField creates a new text field.
+//
+// CornerRadius defaults to th.Corner.SM at Layout time when left at zero.
+// Use WithCornerRadius to override.
 func NewTextField() *TextField {
 	return &TextField{
-		CornerRadius: 6,
 		Editor: giowidget.Editor{
 			SingleLine: true,
 			Submit:     true,
@@ -62,6 +70,20 @@ func (t *TextField) WithMultiLine() *TextField {
 // WithDisabled sets the disabled state.
 func (t *TextField) WithDisabled(d bool) *TextField {
 	t.Disabled = d
+	return t
+}
+
+// WithHelper sets helper text rendered below the field in muted color.
+// Replaced by error text when WithError is set.
+func (t *TextField) WithHelper(msg string) *TextField {
+	t.HelperText = msg
+	return t
+}
+
+// WithError sets error text rendered below the field in the error color.
+// Also turns the border and focus ring red. Pass an empty string to clear.
+func (t *TextField) WithError(msg string) *TextField {
+	t.ErrorText = msg
 	return t
 }
 
@@ -100,7 +122,11 @@ func (t *TextField) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 		}
 	}
 	focused := t.focused
-	radius := gtx.Dp(t.CornerRadius)
+	cornerR := t.CornerRadius
+	if cornerR == 0 {
+		cornerR = th.Corner.SM
+	}
+	radius := gtx.Dp(cornerR)
 
 	// Animate focus glow
 	if focused {
@@ -127,8 +153,13 @@ func (t *TextField) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 	textColor := th.Palette.OnSurface
 	placeholderColor := theme.WithAlpha(th.Palette.OnSurface, 100)
 	selectColor := theme.WithAlpha(th.Palette.Primary, 60)
+	accentColor := th.Palette.Primary
 
-	if state.Has(style.StateFocused) {
+	hasError := t.ErrorText != ""
+	if hasError {
+		borderColor = th.Palette.Error
+		accentColor = th.Palette.Error
+	} else if state.Has(style.StateFocused) {
 		borderColor = th.Palette.Primary
 	}
 	if state.Has(style.StateDisabled) {
@@ -149,70 +180,98 @@ func (t *TextField) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 	}
 	hintCall := hintMacro.Stop()
 
+	// Render the input box, then optionally helper/error text below.
 	// Use layout.Background: it records the foreground (editor) first to measure it,
 	// then draws the background with those constraints, then replays the foreground on top.
 	// This avoids layout.Stack which can interfere with Editor event routing.
-	return layout.Background{}.Layout(gtx,
-		// Background: decorations (border, fill, glow)
-		func(gtx layout.Context) layout.Dimensions {
-			size := gtx.Constraints.Min
+	inputBox := func(gtx layout.Context) layout.Dimensions {
+		return layout.Background{}.Layout(gtx,
+			// Background: decorations (border, fill, glow)
+			func(gtx layout.Context) layout.Dimensions {
+				size := gtx.Constraints.Min
 
-			// Focus glow ring
-			if glowProgress > 0.01 && !t.Disabled {
-				glowAlpha := uint8(float32(40) * glowProgress)
-				glowCol := theme.WithAlpha(th.Palette.Primary, glowAlpha)
-				spread := int(3.0 * glowProgress)
-				drawGlowRing(gtx, size, radius, glowCol, 1, spread)
-			}
-
-			// Background fill
-			fillRect(gtx, bgColor, size, radius)
-
-			// Border
-			borderWidth := float32(1.0) + float32(1.0)*glowProgress
-			strokeRect(gtx, borderColor, size, radius, borderWidth)
-
-			// Bottom accent line
-			if glowProgress > 0.01 {
-				accentH := 2
-				accentAlpha := uint8(float32(255) * glowProgress)
-				accentCol := theme.WithAlpha(th.Palette.Primary, accentAlpha)
-				accentRect := image.Point{X: size.X, Y: accentH}
-				accentOff := op.Offset(image.Pt(0, size.Y-accentH)).Push(gtx.Ops)
-				fillRect(gtx, accentCol, accentRect, 0)
-				accentOff.Pop()
-			}
-
-			return layout.Dimensions{Size: size}
-		},
-		// Foreground: inset + editor
-		func(gtx layout.Context) layout.Dimensions {
-			inset := layout.Inset{
-				Top:    unit.Dp(10),
-				Bottom: unit.Dp(10),
-				Left:   unit.Dp(12),
-				Right:  unit.Dp(12),
-			}
-			return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				// Ensure hint text sets minimum size
-				if w := hintDims.Size.X; gtx.Constraints.Min.X < w {
-					gtx.Constraints.Min.X = w
-				}
-				if h := hintDims.Size.Y; gtx.Constraints.Min.Y < h {
-					gtx.Constraints.Min.Y = h
+				// Focus glow ring (red when in error state)
+				if glowProgress > 0.01 && !t.Disabled {
+					glowAlpha := uint8(float32(40) * glowProgress)
+					glowCol := theme.WithAlpha(accentColor, glowAlpha)
+					spread := int(3.0 * glowProgress)
+					drawGlowRing(gtx, size, radius, glowCol, 1, spread)
 				}
 
-				// Layout editor directly (no Stack wrapping)
-				dims := t.Editor.Layout(gtx, th.Shaper, th.DefaultFont, th.Typo.BodyMedium.Size, colorMaterial(gtx.Ops, textColor), colorMaterial(gtx.Ops, selectColor))
+				// Background fill
+				fillRect(gtx, bgColor, size, radius)
 
-				// Show hint when empty
-				if t.Editor.Len() == 0 {
-					hintCall.Add(gtx.Ops)
+				// Border (thicker when in error state, even unfocused)
+				borderWidth := float32(1.0) + float32(1.0)*glowProgress
+				if hasError && borderWidth < 1.5 {
+					borderWidth = 1.5
+				}
+				strokeRect(gtx, borderColor, size, radius, borderWidth)
+
+				// Bottom accent line
+				if glowProgress > 0.01 {
+					accentH := 2
+					accentAlpha := uint8(float32(255) * glowProgress)
+					accentCol := theme.WithAlpha(accentColor, accentAlpha)
+					accentRect := image.Point{X: size.X, Y: accentH}
+					accentOff := op.Offset(image.Pt(0, size.Y-accentH)).Push(gtx.Ops)
+					fillRect(gtx, accentCol, accentRect, 0)
+					accentOff.Pop()
 				}
 
-				return dims
+				return layout.Dimensions{Size: size}
+			},
+			// Foreground: inset + editor
+			func(gtx layout.Context) layout.Dimensions {
+				inset := layout.Inset{
+					Top:    th.Space.MD,
+					Bottom: th.Space.MD,
+					Left:   th.Space.MD,
+					Right:  th.Space.MD,
+				}
+				return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					// Ensure hint text sets minimum size
+					if w := hintDims.Size.X; gtx.Constraints.Min.X < w {
+						gtx.Constraints.Min.X = w
+					}
+					if h := hintDims.Size.Y; gtx.Constraints.Min.Y < h {
+						gtx.Constraints.Min.Y = h
+					}
+
+					// Layout editor directly (no Stack wrapping)
+					dims := t.Editor.Layout(gtx, th.Shaper, th.DefaultFont, th.Typo.BodyMedium.Size, colorMaterial(gtx.Ops, textColor), colorMaterial(gtx.Ops, selectColor))
+
+					// Show hint when empty
+					if t.Editor.Len() == 0 {
+						hintCall.Add(gtx.Ops)
+					}
+
+					return dims
+				})
+			},
+		)
+	}
+
+	// If no helper or error text, render just the input.
+	footer := t.ErrorText
+	footerColor := th.Palette.Error
+	if footer == "" {
+		footer = t.HelperText
+		footerColor = theme.WithAlpha(th.Palette.OnSurface, 140)
+	}
+	if footer == "" {
+		return inputBox(gtx)
+	}
+
+	// Wrap in a vertical flex with footer text below.
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(inputBox),
+		layout.Rigid(layout.Spacer{Height: th.Space.XS}.Layout),
+		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return layout.Inset{Left: th.Space.XS}.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return NewLabel(footer).WithStyle(LabelBodySmall).WithColor(footerColor).Layout(gtx, th)
 			})
-		},
+		}),
 	)
 }
 

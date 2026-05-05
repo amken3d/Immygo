@@ -4,26 +4,42 @@ ImmyGo's theme system is inspired by Material/Fluent Design tokens. Every visual
 
 ## Built-in Themes
 
+ImmyGo ships five theme families, each with light and dark variants. All
+are `func() *theme.Theme` constructors — call them directly or pass into
+`ui.Theme(...)` / `app.WithTheme(...)`.
+
+| Family | Light | Dark | Notes |
+|---|---|---|---|
+| Fluent | `theme.FluentLight()` | `theme.FluentDark()` | Default. Windows-style, neutral grays + Microsoft blue. |
+| Material 3 | `theme.MaterialLight()` | `theme.MaterialDark()` | Google's baseline scheme — purple primary on near-white. |
+| Catppuccin | `theme.CatppuccinLatte()` | `theme.CatppuccinMocha()` | Developer-favorite pastel palette. Mauve accent. |
+| Nord | `theme.NordLight()` | `theme.NordDark()` | Cool blues (Frost) on Polar Night / Snow Storm neutrals. |
+| Solarized | `theme.SolarizedLight()` | `theme.SolarizedDark()` | Classic Ethan Schoonover palette. Shared accents flip neutrals. |
+
 ### Declarative API
 
 ```go
-// Light theme (default)
+// Default: Fluent Light
 ui.Run("App", build)
 
-// Dark theme
-ui.Run("App", build, ui.Dark())
+// Use a built-in dark theme
+ui.Run("App", build, ui.Theme(theme.CatppuccinMocha()))
 
-// Custom theme
-ui.Run("App", build, ui.Theme(myTheme))
+// Runtime switching: see the ThemeRef section below
+themeRef := ui.NewThemeRef(theme.NordLight())
+ui.Run("App", build, ui.WithThemeRef(themeRef))
+themeRef.Set(theme.NordDark()) // any time, from any goroutine
 ```
 
 ### Lower-Level API
 
 ```go
-app.New("App").Run()                              // Light (default)
-app.New("App").WithDarkTheme().Run()              // Dark
-app.New("App").WithTheme(theme.FluentDark()).Run() // Explicit
+app.New("App").Run()                                     // Fluent Light
+app.New("App").WithTheme(theme.MaterialDark()).Run()     // explicit
+app.New("App").WithTheme(theme.SolarizedLight()).Run()
 ```
+
+The `ui-showcase` example includes a theme-picker dropdown that cycles through every built-in theme — useful for picking the one you want.
 
 ## Theme Structure
 
@@ -98,21 +114,34 @@ Each text style has `Size` (in Sp), `Weight`, `LineHeight`, and `Alignment`.
 
 | Token | Size | Weight | Use |
 |-------|------|--------|-----|
-| `DisplayLarge` | 57sp | Medium | Hero text |
-| `DisplayMedium` | 45sp | Medium | Page titles |
-| `DisplaySmall` | 36sp | Medium | Section titles |
-| `HeadlineLarge` | 32sp | Bold | Major headings |
-| `HeadlineMedium` | 28sp | Bold | Subheadings |
-| `HeadlineSmall` | 24sp | Bold | Minor headings |
-| `TitleLarge` | 22sp | SemiBold | Large titles |
-| `TitleMedium` | 16sp | SemiBold | Titles |
-| `TitleSmall` | 14sp | SemiBold | Small titles |
-| `BodyLarge` | 16sp | Medium | Large body text |
-| `BodyMedium` | 14sp | Medium | Default body text |
-| `BodySmall` | 12sp | Medium | Small text |
-| `LabelLarge` | 14sp | SemiBold | Prominent labels |
-| `LabelMedium` | 12sp | SemiBold | Labels |
-| `LabelSmall` | 11sp | SemiBold | Captions, hints |
+| `DisplayLarge` | 48sp | Medium | Hero text |
+| `DisplayMedium` | 38sp | Medium | Page titles |
+| `DisplaySmall` | 31sp | Medium | Section titles |
+| `HeadlineLarge` | 27sp | Bold | Major headings |
+| `HeadlineMedium` | 24sp | Bold | Subheadings |
+| `HeadlineSmall` | 20sp | Bold | Minor headings |
+| `TitleLarge` | 19sp | SemiBold | Large titles |
+| `TitleMedium` | 14sp | SemiBold | Titles |
+| `TitleSmall` | 12sp | SemiBold | Small titles |
+| `BodyLarge` | 14sp | Medium | Large body text |
+| `BodyMedium` | 12sp | Medium | Default body text |
+| `BodySmall` | 10sp | Medium | Small text |
+| `LabelLarge` | 12sp | SemiBold | Prominent labels |
+| `LabelMedium` | 10sp | SemiBold | Labels |
+| `LabelSmall` | 9sp | SemiBold | Captions, hints |
+
+The defaults run roughly 15% smaller than the Material 3 baseline scale (which is tuned for Android phone DPIs); the smaller values feel right on typical desktop displays. If your app needs the larger Material defaults, multiply with `WithFontScale(1.18)` or higher.
+
+### Scaling all sizes uniformly
+
+`(*Theme).WithFontScale(scale float32)` returns a copy of the theme with every typography size and line-height multiplied by `scale`. Useful for Compact / Default / Comfortable / Large style switches without writing a whole new typography scale.
+
+```go
+small := theme.FluentLight().WithFontScale(0.85) // Compact
+big   := theme.FluentLight().WithFontScale(1.25) // Comfortable
+```
+
+The receiver is returned unchanged when `scale <= 0` or `== 1.0`, so wrapping a default theme is free. The `ui-showcase` example pairs the theme picker with a size picker (Compact / Default / Comfortable / Large) that demonstrates the runtime swap.
 
 ### Using Typography
 
@@ -137,36 +166,59 @@ widget.Caption("Hint") // LabelSmall
 
 ## Spacing
 
-| Token | Value | Use |
-|-------|-------|-----|
-| `Space.XXS` | 2dp | Hairline gaps |
-| `Space.XS` | 4dp | Tight spacing |
-| `Space.SM` | 8dp | Small spacing |
-| `Space.MD` | 12dp | Default spacing |
-| `Space.LG` | 16dp | Generous spacing |
-| `Space.XL` | 24dp | Section gaps |
-| `Space.XXL` | 32dp | Major section gaps |
+The theme exposes a 7-step spacing scale on `th.Space.*` (used by widgets internally) and a parallel set of `ui.Space*` constants for use in declarative layout code.
+
+| Theme token | UI constant | Value | Use |
+|-------|-------------|-------|-----|
+| `Space.XXS` | — | 2dp | Hairline gaps |
+| `Space.XS` | `ui.SpaceXS` | 4dp | Tight, related labels |
+| `Space.SM` | `ui.SpaceSm` | 8dp | Default item spacing |
+| `Space.MD` | `ui.SpaceMd` | 12dp | Section item spacing |
+| `Space.LG` | `ui.SpaceLg` | 16dp | Between sections |
+| `Space.XL` | `ui.SpaceXL` | 24dp | Page padding |
+| `Space.XXL` | `ui.SpaceXXL` | 32dp | Hero padding |
+
+```go
+ui.VStack(
+    ui.Text("Title").Title(),
+    ui.Text("Body"),
+).Spacing(ui.SpaceMd).Padding(ui.SpaceXL)
+```
 
 ## Corner Radius
 
-| Token | Value | Use |
-|-------|-------|-----|
-| `Corner.None` | 0dp | Sharp corners |
-| `Corner.SM` | 4dp | Subtle rounding |
-| `Corner.MD` | 8dp | Default cards |
-| `Corner.LG` | 12dp | Prominent rounding |
-| `Corner.XL` | 16dp | Large rounding |
-| `Corner.Full` | 999dp | Fully circular |
+The theme exposes 6 corner-radius tokens on `th.Corner.*`. The `ui` package also defines a smaller, opinionated set for declarative use:
+
+| Theme token | UI constant | Value | Use |
+|-------|-------------|-------|-----|
+| `Corner.None` | — | 0dp | Sharp corners |
+| `Corner.SM` | `ui.RadiusSm` | 4–6dp | Chips, badges, small surfaces |
+| `Corner.MD` | `ui.RadiusMd` | 8–10dp | Default cards, dialogs |
+| `Corner.LG` | `ui.RadiusLg` | 12–16dp | Hero cards, sheets |
+| `Corner.XL` | — | 16dp | Large rounding |
+| `Corner.Full` | — | 999dp | Fully circular |
+
+```go
+ui.Card(content).Elevation(ui.ElevationMed).CornerRadius(ui.RadiusMd)
+```
 
 ## Elevation
 
-| Token | Value | Use |
-|-------|-------|-----|
-| `Elev.None` | 0 | Flat surface |
-| `Elev.SM` | 1 | Subtle shadow |
-| `Elev.MD` | 2 | Cards, dialogs |
-| `Elev.LG` | 3 | Menus, dropdowns |
-| `Elev.XL` | 4 | Modal dialogs |
+The theme exposes 5 elevation levels on `th.Elev.*`. The `ui` package defines 3 named levels for the most common semantic groupings:
+
+| Theme token | UI constant | Value | Use |
+|-------|-------------|-------|-----|
+| `Elev.None` | — | 0 | Flat surface |
+| `Elev.SM` | `ui.ElevationLow` | 1 | Static info surfaces (read-only) |
+| `Elev.MD` | `ui.ElevationMed` | 2 | Interactive surfaces (clickable cards) |
+| `Elev.LG` | `ui.ElevationHigh` | 3 | Modal / hero surfaces (dialogs) |
+| `Elev.XL` | — | 4 | Highest-priority modals |
+
+```go
+ui.Card(content).Elevation(ui.ElevationLow)  // ambient list item
+ui.Card(content).Elevation(ui.ElevationMed)  // clickable preview
+ui.Card(content).Elevation(ui.ElevationHigh) // modal / focal card
+```
 
 ## Runtime Theme Switching
 

@@ -1,12 +1,70 @@
-<p align="center">
-  <img src="assets/immygo-logo-sq.svg" alt="ImmyGo Logo" width="200">
-</p>
-
-# ImmyGo
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/Showcase1.png" alt="Showcase 1" width="200">
+    </td>
+    <td align="center">
+      <img src="assets/Showcase2.png" alt="Showcase 2" width="200">
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/Showcase3.png" alt="Showcase 3" width="200">
+    </td>
+    <td align="center">
+      <img src="assets/Showcase4.png" alt="Showcase 4" width="200">
+    </td>
+  </tr>
+</table>
 
 visit the website at https://immygo.app
+---
+
+## Getting Started
+
+### Install
+
+```bash
+go get github.com/amken3d/immygo
+```
+
+Or scaffold with the CLI:
+
+```bash
+# Default template
+immygo new myapp
+
+# AI-generated from description
+immygo new myapp --ai "a todo list with add and delete"
+```
+
+### System Dependencies
+
+- **Linux (Debian/Ubuntu):** `sudo apt install libwayland-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libx11-xcb-dev libvulkan-dev`
+- **macOS:** `xcode-select --install`
+- **Windows:** No additional dependencies
+
+### CLI Tool
+
+```bash
+immygo new <name>              # Scaffold a new project
+immygo new <name> --ai "desc"  # AI-generated scaffold
+immygo dev [path]              # Live-reload dev server
+immygo dev --ai [path]         # Dev server + AI assistant
+immygo mcp                     # MCP server for AI editors
+```
 
 **AI-first Go UI framework.** Describe what you want, and ImmyGo builds it. A high-level framework built on [Gio](https://gioui.org) with [Fluent Design](https://fluent2.microsoft.design/) aesthetics and local AI capabilities via [Yzma](https://github.com/hybridgroup/yzma), Ollama and Anthropic API.
+
+<p align="center">
+  <a href="https://immygo.app/#showcase">
+    <strong>▶ Try the interactive showcase in your browser →</strong>
+  </a>
+  <br>
+  <em>Runs entirely client-side as WebAssembly. No install required.</em>
+</p>
+
+> GitHub strips `<script>` and `<iframe>` tags from rendered Markdown, so the live demo can't be inlined here. The link above hosts the same Wasm bundle this repo builds via `scripts/build-wasm-showcase.sh`.
 
 ## Build UIs with AI
 
@@ -104,41 +162,6 @@ Or enable programmatically:
 ui.EnableDebug()
 ```
 
----
-
-## Getting Started
-
-### Install
-
-```bash
-go get github.com/amken3d/immygo
-```
-
-Or scaffold with the CLI:
-
-```bash
-# Default template
-immygo new myapp
-
-# AI-generated from description
-immygo new myapp --ai "a todo list with add and delete"
-```
-
-### System Dependencies
-
-- **Linux (Debian/Ubuntu):** `sudo apt install libwayland-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libx11-xcb-dev libvulkan-dev`
-- **macOS:** `xcode-select --install`
-- **Windows:** No additional dependencies
-
-### CLI Tool
-
-```bash
-immygo new <name>              # Scaffold a new project
-immygo new <name> --ai "desc"  # AI-generated scaffold
-immygo dev [path]              # Live-reload dev server
-immygo dev --ai [path]         # Dev server + AI assistant
-immygo mcp                     # MCP server for AI editors
-```
 
 ---
 
@@ -229,17 +252,37 @@ count.Update(func(n int) int { return n + 1 })
 doubled := ui.Computed(count, func(n int) int { return n * 2 })
 ```
 
-### Fluent Design Theming
+### Five Built-in Themes
 
-Built-in light and dark themes with semantic tokens. Runtime theme switching:
+Five theme families × light/dark variants, all with shared design tokens (typography, spacing, radius, elevation). Switch at runtime via `ThemeRef`:
+
+| Family | Light | Dark |
+|---|---|---|
+| Fluent | `theme.FluentLight()` | `theme.FluentDark()` |
+| Material 3 | `theme.MaterialLight()` | `theme.MaterialDark()` |
+| Catppuccin | `theme.CatppuccinLatte()` | `theme.CatppuccinMocha()` |
+| Nord | `theme.NordLight()` | `theme.NordDark()` |
+| Solarized | `theme.SolarizedLight()` | `theme.SolarizedDark()` |
 
 ```go
 themeRef := ui.NewThemeRef(theme.FluentLight())
-darkMode := ui.Toggle(false).OnChange(func(on bool) {
-    if on { themeRef.Set(theme.FluentDark()) } else { themeRef.Set(theme.FluentLight()) }
-})
 ui.Run("App", build, ui.WithThemeRef(themeRef))
+
+// Anywhere, any time:
+themeRef.Set(theme.CatppuccinMocha())
 ```
+
+The showcase has a theme-picker dropdown that cycles through all of them — useful for picking the one you want before committing.
+
+### Font Scale
+
+`(*Theme).WithFontScale(scale)` returns a copy with every typography size + line-height multiplied. Combine with any theme for compact / comfortable / large variants.
+
+```go
+ui.Run("App", build, ui.Theme(theme.NordDark().WithFontScale(1.2)))
+```
+
+The showcase exposes Default / Comfortable / Large / X-Large presets next to the theme picker.
 
 ### Responsive Layouts
 
@@ -270,6 +313,40 @@ ui.DataGrid(ui.Col("Name"), ui.Col("Email"), ui.Col("Role")).
     AddRow("Bob", "bob@example.com", "User").
     OnRowSelect(func(i int) { ... })
 ```
+
+### Node Canvas
+
+A Node-RED-style flow-graph editor with pan/zoom, drag, multi-select, marquee, snap-to-grid, save/load, and typed ports. **Each node can host real ImmyGo widgets in its body** for inline configuration — no separate properties panel.
+
+```go
+catalog := widget.NewCatalog().
+    Register(widget.NodeDef{Type: "vol", Title: "Volume",
+        Outputs: []widget.Port{{Name: "level", Type: "int"}},
+        MakeBody: func() widget.NodeBody {
+            slider := ui.Slider(0, 100, 50)
+            return ui.NodeBody(func() ui.View {
+                return ui.VStack(
+                    ui.Text(fmt.Sprintf("Level: %.0f", slider.Value())).Small(),
+                    slider,
+                ).Spacing(ui.SpaceXS)
+            })
+        },
+    })
+
+graph   := &widget.Graph{}
+canvas  := ui.Canvas(graph).WithCatalog(catalog)
+palette := ui.NodePalette(catalog, func(typ string) {
+    if n, ok := catalog.NewNode(typ, 80, 80); ok {
+        graph.Nodes = append(graph.Nodes, n)
+    }
+})
+
+ui.Run("Flow", func() ui.View {
+    return ui.HStack(palette.Width(180), ui.Flex(1, canvas))
+}, ui.Size(1100, 600))
+```
+
+See [the Canvas guide](docs/canvas.md) and [`examples/node-canvas/`](examples/node-canvas/main.go) for the full picture.
 
 ### Local AI Chat
 
@@ -323,6 +400,23 @@ immygo/
     └── showcase/      Lower-level widget showcase
 ```
 
+## Web (Wasm)
+
+ImmyGo apps can run in the browser via Gio's WebAssembly target. A helper script bundles the showcase as a static site:
+
+```bash
+scripts/build-wasm-showcase.sh                   # → ./website-wasm/
+scripts/build-wasm-showcase.sh public/demo       # custom output dir
+```
+
+The output directory contains `index.html`, `showcase.wasm`, and `wasm_exec.js` — drop it onto any static host. Serve locally with:
+
+```bash
+cd website-wasm && python3 -m http.server 8000
+```
+
+The bundle is around 20 MB raw, ~5 MB gzipped. The yzma local-LLM provider is gated out for `js/wasm` (it requires CGO); every other ImmyGo feature, including the node canvas, works in the browser.
+
 ## Examples
 
 ```bash
@@ -331,13 +425,13 @@ cd examples/ui-showcase && go run .
 
 | Example | Description | Lines |
 |---------|-------------|-------|
-| `examples/ui-hello/` | Centered text + counter button | 29 |
+| `examples/ui-hello/` | Centered text + counter button | 32 |
 | `examples/ui-form/` | Sign-up form with dark mode toggle | 84 |
-| `examples/ui-showcase/` | Full demo: tabs, sliders, icons, badges, dialogs | ~230 |
+| `examples/ui-showcase/` | Full widget gallery — tabs, forms, lists, data, overlays, canvas | ~600 |
 | `examples/todoapp/` | CRUD todo app mixing declarative + ViewFunc | ~208 |
-| `examples/hello/` | Minimal lower-level app | — |
-| `examples/dashboard/` | Multi-page dashboard with sidebar | — |
-| `examples/showcase/` | Interactive demo of all widget types | — |
+| `examples/node-canvas/` | Node-RED-style flow editor with pan/zoom, palette, save/load, typed ports | ~250 |
+| `examples/hello/` | Minimal lower-level app | 48 |
+| `examples/dashboard/` | Polished multi-page dashboard (lower-level API) | ~400 |
 
 ## Documentation
 
@@ -345,6 +439,7 @@ cd examples/ui-showcase && go run .
 - [Widgets Reference](docs/widgets.md) — All controls with declarative and lower-level examples
 - [Layouts Guide](docs/layouts.md) — Declarative and panel-based layout composition
 - [Theming Guide](docs/theming.md) — Colors, typography, custom themes, runtime switching
+- [Node Canvas](docs/canvas.md) — Flow-graph editor with live widget bodies, typed ports, save/load
 - [AI Integration](docs/ai.md) — AI scaffolding, MCP server, dev tools, prototyping
 
 ## Design Principles
@@ -360,7 +455,7 @@ cd examples/ui-showcase && go run .
 MIT
 
 ## Development Notes
-This project was built with significant AI assistance (primarily Claude Opus4.6 by Anthropic) for code generation, documentation, and scaffolding. Architecture, design decisions, hardware domain knowledge, and review are my own. I’m a solo founder shipping across embedded hardware, firmware, and desktop software — AI-assisted development is core to how I work at that breadth.
+This project was built with significant AI assistance (primarily Claude Code by Anthropic) for code generation, documentation, and scaffolding. Architecture, design decisions, hardware domain knowledge, and review are my own. 
 ImmyGo itself is designed to be AI-first, so this is consistent with the project’s own philosophy rather than something to hide.
 
 ## Amken LLC's AI Policy

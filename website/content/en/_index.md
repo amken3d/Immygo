@@ -29,17 +29,42 @@ and **pluggable AI providers** (Yzma, Ollama, Claude, MCP) — no web stack requ
 
 {{< blocks/section color="white" >}}
 
-<div class="text-center mb-4">
+<div class="text-center mb-4" id="showcase">
   <h2>See It in Action</h2>
-  <p class="text-muted">Watch ImmyGo build a native desktop UI — no web stack, just Go</p>
+  <p class="text-muted">Live, interactive showcase running entirely in your browser via WebAssembly</p>
 </div>
 
-<div class="immygo-demo-video">
+<div id="showcase-poster" class="immygo-demo-video">
   <video autoplay loop muted playsinline class="immygo-screenshot">
     <source src="/images/demo.webm" type="video/webm" />
     Your browser does not support the video tag.
   </video>
 </div>
+
+<div class="text-center mt-4" id="showcase-cta">
+  <button id="showcase-launch" class="btn btn-lg btn-primary">▶ Run the showcase in your browser</button>
+  <p class="text-muted mt-2" style="font-size:0.85em">Loads a ~5 MB WebAssembly bundle. Same code runs natively on desktop.</p>
+</div>
+
+<div id="showcase-embed" class="mt-4"></div>
+
+<script>
+(function () {
+  var btn = document.getElementById('showcase-launch');
+  var poster = document.getElementById('showcase-poster');
+  var cta = document.getElementById('showcase-cta');
+  var target = document.getElementById('showcase-embed');
+  if (!btn || !target) return;
+  btn.addEventListener('click', function () {
+    target.innerHTML =
+      '<iframe src="/showcase/" loading="lazy" allow="clipboard-write" ' +
+      'style="display:block;width:100%;max-width:1100px;height:720px;margin:0 auto;' +
+      'border:0;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.15);"></iframe>';
+    if (poster) poster.style.display = 'none';
+    if (cta) cta.style.display = 'none';
+  });
+})();
+</script>
 
 <div class="text-center mt-5 mb-4">
   <h2>Showcase</h2>

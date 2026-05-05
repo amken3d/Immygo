@@ -37,6 +37,7 @@ type DialogView struct {
 // Call dlg.Show() to display it. Place the view at the end of your
 // layout so it renders on top of everything.
 func Dialog(title string) *DialogView {
+	markStatefulCtor()
 	return &DialogView{dlg: widget.NewDialog(title)}
 }
 
@@ -44,6 +45,7 @@ func Dialog(title string) *DialogView {
 //
 //	alert := ui.Alert("Error").Content(ui.Text("Something went wrong."))
 func Alert(title string) *DialogView {
+	markStatefulCtor()
 	return &DialogView{dlg: widget.NewAlert(title)}
 }
 

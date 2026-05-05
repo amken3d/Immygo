@@ -44,6 +44,10 @@ func (t *TextView) Small() *TextView { t.style = widget.LabelBodySmall; return t
 // Bold sets title medium style (medium weight).
 func (t *TextView) Bold() *TextView { t.style = widget.LabelTitle; return t }
 
+// Subtitle sets the section-heading style — the tier between Headline and Bold.
+// Use it for "Buttons", "Slider", etc. labels above grouped controls.
+func (t *TextView) Subtitle() *TextView { t.style = widget.LabelTitleLarge; return t }
+
 // Display sets display style (largest).
 func (t *TextView) Display() *TextView { t.style = widget.LabelDisplay; return t }
 

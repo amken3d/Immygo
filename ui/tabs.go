@@ -22,6 +22,7 @@ type TabBarView struct {
 //	        currentTab.Set(index)
 //	    })
 func TabBar(tabs ...string) *TabBarView {
+	markStatefulCtor()
 	return &TabBarView{tb: widget.NewTabBar(tabs...)}
 }
 

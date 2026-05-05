@@ -23,6 +23,7 @@ type ToggleView struct {
 //
 // To read the value: darkMode.Value()
 func Toggle(value bool) *ToggleView {
+	markStatefulCtor()
 	return &ToggleView{toggle: widget.NewToggle(value)}
 }
 

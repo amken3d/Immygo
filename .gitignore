@@ -6,6 +6,19 @@
 # Build artifacts
 build/
 
+# Example binaries produced by `go build ./examples/...`
+/ui-showcase
+/ui-hello
+/ui-form
+/hello
+/dashboard
+/todoapp
+/node-canvas
+
+# WASM build artifacts
+/website-wasm/
+website/static/showcase/
+
 # AI assistant config
 CLAUDE.md
 
@@ -15,3 +28,4 @@ website/resources/
 website/node_modules/
 website/.hugo_build.lock
 website/package-lock.json
+/graph.json

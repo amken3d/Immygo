@@ -222,9 +222,29 @@ th.Space.MD              // Medium spacing (12dp)
 th.Corner.MD             // Medium corner radius (8dp)
 ```
 
-Two built-in themes:
-- `theme.FluentLight()` — Light Fluent Design theme (default)
-- `theme.FluentDark()` — Dark Fluent Design theme
+Five built-in theme families, each with light + dark variants:
+
+| Family | Light | Dark |
+|---|---|---|
+| Fluent (default) | `theme.FluentLight()` | `theme.FluentDark()` |
+| Material 3 | `theme.MaterialLight()` | `theme.MaterialDark()` |
+| Catppuccin | `theme.CatppuccinLatte()` | `theme.CatppuccinMocha()` |
+| Nord | `theme.NordLight()` | `theme.NordDark()` |
+| Solarized | `theme.SolarizedLight()` | `theme.SolarizedDark()` |
+
+Use a different theme:
+
+```go
+ui.Run("App", build, ui.Theme(theme.CatppuccinMocha()))
+```
+
+Apply a font-size multiplier to any theme:
+
+```go
+ui.Run("App", build, ui.Theme(theme.NordDark().WithFontScale(1.2)))
+```
+
+See [Theming](theming.md) for the full palette and runtime-switching API.
 
 ### 5. Event Handling
 

@@ -119,7 +119,8 @@ func (dd *DropDown) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 	}
 
 	hovered := dd.headerClick.Hovered()
-	if hovered {
+	focused := gtx.Focused(&dd.headerClick)
+	if hovered || focused {
 		dd.glowAnim.SetTarget(1.0)
 	} else {
 		dd.glowAnim.SetTarget(0.0)

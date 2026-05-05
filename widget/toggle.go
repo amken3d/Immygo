@@ -28,6 +28,7 @@ type Toggle struct {
 	// Animation state
 	posAnim   *style.FloatAnimator
 	trackAnim *style.ColorAnimator
+	focusAnim *style.FloatAnimator
 	inited    bool
 }
 
@@ -41,6 +42,7 @@ func NewToggle(value bool) *Toggle {
 		Value:     value,
 		posAnim:   style.NewFloatAnimator(200*time.Millisecond, pos),
 		trackAnim: style.NewColorAnimator(200*time.Millisecond, color.NRGBA{}),
+		focusAnim: style.NewFloatAnimator(180*time.Millisecond, 0),
 	}
 }
 
@@ -86,8 +88,19 @@ func (t *Toggle) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 		t.inited = true
 	}
 
+	// Focus ring animation
+	if t.focusAnim == nil {
+		t.focusAnim = style.NewFloatAnimator(180*time.Millisecond, 0)
+	}
+	if gtx.Focused(&t.clickable) {
+		t.focusAnim.SetTarget(1.0)
+	} else {
+		t.focusAnim.SetTarget(0.0)
+	}
+	focusProgress := t.focusAnim.Value()
+
 	// Request redraws while animating
-	if t.posAnim.Active() || t.trackAnim.Active() {
+	if t.posAnim.Active() || t.trackAnim.Active() || t.focusAnim.Active() {
 		gtx.Execute(op.InvalidateCmd{})
 	}
 
@@ -98,10 +111,18 @@ func (t *Toggle) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 
 	return t.clickable.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		size := image.Point{X: width, Y: height}
+		radius := height / 2
+
+		// Focus glow ring (drawn behind track)
+		if focusProgress > 0.01 {
+			glowAlpha := uint8(float32(60) * focusProgress)
+			glowCol := theme.WithAlpha(th.Palette.Primary, glowAlpha)
+			spread := int(3.0 * focusProgress)
+			drawGlowRing(gtx, size, radius, glowCol, 1, spread)
+		}
 
 		// Animated track color
 		trackColor := t.trackAnim.Value()
-		radius := height / 2
 		fillRect(gtx, trackColor, size, radius)
 
 		// Animated knob position
@@ -139,6 +160,7 @@ type Checkbox struct {
 
 	clickable giowidget.Clickable
 	checkAnim *style.FloatAnimator
+	focusAnim *style.FloatAnimator
 }
 
 // NewCheckbox creates a checkbox.
@@ -151,6 +173,7 @@ func NewCheckbox(label string, value bool) *Checkbox {
 		Label:     label,
 		Value:     value,
 		checkAnim: style.NewFloatAnimator(150*time.Millisecond, initial),
+		focusAnim: style.NewFloatAnimator(180*time.Millisecond, 0),
 	}
 }
 
@@ -175,7 +198,17 @@ func (c *Checkbox) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions
 		c.checkAnim.SetTarget(0.0)
 	}
 
-	if c.checkAnim.Active() {
+	if c.focusAnim == nil {
+		c.focusAnim = style.NewFloatAnimator(180*time.Millisecond, 0)
+	}
+	if gtx.Focused(&c.clickable) {
+		c.focusAnim.SetTarget(1.0)
+	} else {
+		c.focusAnim.SetTarget(0.0)
+	}
+	focusProgress := c.focusAnim.Value()
+
+	if c.checkAnim.Active() || c.focusAnim.Active() {
 		gtx.Execute(op.InvalidateCmd{})
 	}
 
@@ -187,6 +220,14 @@ func (c *Checkbox) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				size := image.Point{X: boxSize, Y: boxSize}
 				checkProgress := c.checkAnim.Value()
+
+				// Focus glow ring around the box
+				if focusProgress > 0.01 {
+					glowAlpha := uint8(float32(60) * focusProgress)
+					glowCol := theme.WithAlpha(th.Palette.Primary, glowAlpha)
+					spread := int(3.0 * focusProgress)
+					drawGlowRing(gtx, size, radius, glowCol, 1, spread)
+				}
 
 				// Interpolate between unchecked and checked appearance
 				bgColor := lerpColorNRGBA(th.Palette.Surface, th.Palette.Primary, checkProgress)

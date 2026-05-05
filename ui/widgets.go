@@ -71,6 +71,7 @@ type CheckboxView struct {
 //	agreed := ui.Checkbox("I agree to terms", false)
 //	if agreed.Value() { ... }
 func Checkbox(label string, value bool) *CheckboxView {
+	markStatefulCtor()
 	return &CheckboxView{cb: widget.NewCheckbox(label, value)}
 }
 
@@ -112,6 +113,7 @@ type DropdownView struct {
 //	        fmt.Printf("Selected: %s\n", item)
 //	    })
 func Dropdown(items ...string) *DropdownView {
+	markStatefulCtor()
 	return &DropdownView{dd: widget.NewDropDown(items...)}
 }
 

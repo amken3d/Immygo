@@ -24,6 +24,7 @@ type SliderView struct {
 // To read: volume.Value()
 // To set:  volume.SetValue(75)
 func Slider(min, max, value float32) *SliderView {
+	markStatefulCtor()
 	return &SliderView{slider: widget.NewSlider(min, max, value)}
 }
 

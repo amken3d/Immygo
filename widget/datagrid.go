@@ -46,9 +46,19 @@ type DataGrid struct {
 	HeaderHeight unit.Dp
 	Striped      bool
 
+	// Empty renders below the header when there are no rows. If nil,
+	// a default "No rows" placeholder is shown.
+	Empty layout.Widget
+
 	headerClicks []giowidget.Clickable
 	rowClicks    []giowidget.Clickable
 	list         giowidget.List
+}
+
+// WithEmpty sets a custom widget to render when the grid has no rows.
+func (dg *DataGrid) WithEmpty(w layout.Widget) *DataGrid {
+	dg.Empty = w
+	return dg
 }
 
 // NewDataGrid creates a data grid with columns.
@@ -133,150 +143,165 @@ func (dg *DataGrid) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 	headerH := gtx.Dp(dg.HeaderHeight)
 	rowH := gtx.Dp(dg.RowHeight)
 
-	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		// Header
-		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			size := image.Pt(totalWidth, headerH)
+	headerWidget := func(gtx layout.Context) layout.Dimensions {
+		size := image.Pt(totalWidth, headerH)
 
-			// Header background
-			fillRect(gtx, th.Palette.SurfaceVariant, size, 0)
+		// Header background
+		fillRect(gtx, th.Palette.SurfaceVariant, size, 0)
 
+		x := 0
+		for i, col := range dg.Columns {
+			w := colWidths[i]
+			off := op.Offset(image.Pt(x, 0)).Push(gtx.Ops)
+
+			cellSize := image.Pt(w, headerH)
+
+			// Sort indicator
+			headerText := col.Header
+			if dg.SortColumn == i {
+				if dg.SortDir == SortAsc {
+					headerText += " ▲"
+				} else if dg.SortDir == SortDesc {
+					headerText += " ▼"
+				}
+			}
+
+			// Header click for sorting
+			if col.Sortable {
+				if dg.headerClicks[i].Clicked(gtx) {
+					newDir := SortAsc
+					if dg.SortColumn == i && dg.SortDir == SortAsc {
+						newDir = SortDesc
+					}
+					dg.SortColumn = i
+					dg.SortDir = newDir
+					dg.SortBy(i, newDir)
+					if dg.OnSort != nil {
+						dg.OnSort(i, newDir)
+					}
+				}
+			}
+
+			// Header text
+			textOff := op.Offset(image.Pt(gtx.Dp(8), (headerH-gtx.Dp(14))/2)).Push(gtx.Ops)
+			lbl := NewLabel(headerText).WithStyle(LabelTitle)
+			lbl.Layout(gtx, th)
+			textOff.Pop()
+
+			// Clickable area
+			if col.Sortable {
+				clickArea := clip.Rect(image.Rectangle{Max: cellSize}).Push(gtx.Ops)
+				dg.headerClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Dimensions{Size: cellSize}
+				})
+				clickArea.Pop()
+			}
+
+			// Column separator
+			sepX := w - 1
+			sepOff := op.Offset(image.Pt(sepX, gtx.Dp(4))).Push(gtx.Ops)
+			sepSize := image.Pt(1, headerH-gtx.Dp(8))
+			paint.FillShape(gtx.Ops, th.Palette.Outline, clip.Rect(image.Rectangle{Max: sepSize}).Op())
+			sepOff.Pop()
+
+			off.Pop()
+			x += w
+		}
+
+		// Bottom border
+		borderOff := op.Offset(image.Pt(0, headerH-1)).Push(gtx.Ops)
+		paint.FillShape(gtx.Ops, th.Palette.Outline, clip.Rect(image.Rectangle{Max: image.Pt(totalWidth, 1)}).Op())
+		borderOff.Pop()
+
+		return layout.Dimensions{Size: size}
+	}
+
+	rowsWidget := func(gtx layout.Context) layout.Dimensions {
+		return dg.list.Layout(gtx, len(dg.Rows), func(gtx layout.Context, rowIdx int) layout.Dimensions {
+			if rowIdx >= len(dg.Rows) {
+				return layout.Dimensions{}
+			}
+
+			row := dg.Rows[rowIdx]
+			size := image.Pt(totalWidth, rowH)
+
+			// Row background
+			var bg color.NRGBA
+			if rowIdx == dg.SelectedRow {
+				bg = theme.WithAlpha(th.Palette.Primary, 30)
+			} else if dg.Striped && rowIdx%2 == 1 {
+				bg = th.Palette.SurfaceVariant
+			} else {
+				bg = th.Palette.Surface
+			}
+
+			// Hover
+			if dg.rowClicks[rowIdx].Hovered() && rowIdx != dg.SelectedRow {
+				bg = theme.WithAlpha(th.Palette.Primary, 15)
+			}
+
+			fillRect(gtx, bg, size, 0)
+
+			// Click
+			if dg.rowClicks[rowIdx].Clicked(gtx) {
+				dg.SelectedRow = rowIdx
+				if dg.OnRowSelect != nil {
+					dg.OnRowSelect(rowIdx)
+				}
+			}
+
+			// Cells
 			x := 0
-			for i, col := range dg.Columns {
+			for i := range dg.Columns {
 				w := colWidths[i]
 				off := op.Offset(image.Pt(x, 0)).Push(gtx.Ops)
 
-				cellSize := image.Pt(w, headerH)
-
-				// Sort indicator
-				headerText := col.Header
-				if dg.SortColumn == i {
-					if dg.SortDir == SortAsc {
-						headerText += " ▲"
-					} else if dg.SortDir == SortDesc {
-						headerText += " ▼"
-					}
+				cellText := ""
+				if i < len(row) {
+					cellText = row[i]
 				}
 
-				// Header click for sorting
-				if col.Sortable {
-					if dg.headerClicks[i].Clicked(gtx) {
-						newDir := SortAsc
-						if dg.SortColumn == i && dg.SortDir == SortAsc {
-							newDir = SortDesc
-						}
-						dg.SortColumn = i
-						dg.SortDir = newDir
-						dg.SortBy(i, newDir)
-						if dg.OnSort != nil {
-							dg.OnSort(i, newDir)
-						}
-					}
-				}
-
-				// Header text
-				textOff := op.Offset(image.Pt(gtx.Dp(8), (headerH-gtx.Dp(14))/2)).Push(gtx.Ops)
-				lbl := NewLabel(headerText).WithStyle(LabelTitle)
+				textOff := op.Offset(image.Pt(gtx.Dp(8), (rowH-gtx.Dp(14))/2)).Push(gtx.Ops)
+				lbl := NewLabel(cellText)
 				lbl.Layout(gtx, th)
 				textOff.Pop()
-
-				// Clickable area
-				if col.Sortable {
-					clickArea := clip.Rect(image.Rectangle{Max: cellSize}).Push(gtx.Ops)
-					dg.headerClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return layout.Dimensions{Size: cellSize}
-					})
-					clickArea.Pop()
-				}
-
-				// Column separator
-				sepX := w - 1
-				sepOff := op.Offset(image.Pt(sepX, gtx.Dp(4))).Push(gtx.Ops)
-				sepSize := image.Pt(1, headerH-gtx.Dp(8))
-				paint.FillShape(gtx.Ops, th.Palette.Outline, clip.Rect(image.Rectangle{Max: sepSize}).Op())
-				sepOff.Pop()
 
 				off.Pop()
 				x += w
 			}
 
-			// Bottom border
-			borderOff := op.Offset(image.Pt(0, headerH-1)).Push(gtx.Ops)
-			paint.FillShape(gtx.Ops, th.Palette.Outline, clip.Rect(image.Rectangle{Max: image.Pt(totalWidth, 1)}).Op())
+			// Row border
+			borderOff := op.Offset(image.Pt(0, rowH-1)).Push(gtx.Ops)
+			paint.FillShape(gtx.Ops, th.Palette.OutlineVariant, clip.Rect(image.Rectangle{Max: image.Pt(totalWidth, 1)}).Op())
 			borderOff.Pop()
 
-			return layout.Dimensions{Size: size}
-		}),
-		// Rows
-		layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
-			return dg.list.Layout(gtx, len(dg.Rows), func(gtx layout.Context, rowIdx int) layout.Dimensions {
-				if rowIdx >= len(dg.Rows) {
-					return layout.Dimensions{}
-				}
-
-				row := dg.Rows[rowIdx]
-				size := image.Pt(totalWidth, rowH)
-
-				// Row background
-				var bg color.NRGBA
-				if rowIdx == dg.SelectedRow {
-					bg = theme.WithAlpha(th.Palette.Primary, 30)
-				} else if dg.Striped && rowIdx%2 == 1 {
-					bg = th.Palette.SurfaceVariant
-				} else {
-					bg = th.Palette.Surface
-				}
-
-				// Hover
-				if dg.rowClicks[rowIdx].Hovered() && rowIdx != dg.SelectedRow {
-					bg = theme.WithAlpha(th.Palette.Primary, 15)
-				}
-
-				fillRect(gtx, bg, size, 0)
-
-				// Click
-				if dg.rowClicks[rowIdx].Clicked(gtx) {
-					dg.SelectedRow = rowIdx
-					if dg.OnRowSelect != nil {
-						dg.OnRowSelect(rowIdx)
-					}
-				}
-
-				// Cells
-				x := 0
-				for i := range dg.Columns {
-					w := colWidths[i]
-					off := op.Offset(image.Pt(x, 0)).Push(gtx.Ops)
-
-					cellText := ""
-					if i < len(row) {
-						cellText = row[i]
-					}
-
-					textOff := op.Offset(image.Pt(gtx.Dp(8), (rowH-gtx.Dp(14))/2)).Push(gtx.Ops)
-					lbl := NewLabel(cellText)
-					lbl.Layout(gtx, th)
-					textOff.Pop()
-
-					off.Pop()
-					x += w
-				}
-
-				// Row border
-				borderOff := op.Offset(image.Pt(0, rowH-1)).Push(gtx.Ops)
-				paint.FillShape(gtx.Ops, th.Palette.OutlineVariant, clip.Rect(image.Rectangle{Max: image.Pt(totalWidth, 1)}).Op())
-				borderOff.Pop()
-
-				// Clickable area
-				clickArea := clip.Rect(image.Rectangle{Max: size}).Push(gtx.Ops)
-				dg.rowClicks[rowIdx].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Dimensions{Size: size}
-				})
-				clickArea.Pop()
-
+			// Clickable area
+			clickArea := clip.Rect(image.Rectangle{Max: size}).Push(gtx.Ops)
+			dg.rowClicks[rowIdx].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return layout.Dimensions{Size: size}
 			})
-		}),
+			clickArea.Pop()
+
+			return layout.Dimensions{Size: size}
+		})
+	}
+
+	// When empty, lay the placeholder out as a Rigid so it takes natural
+	// height. Flexed(1) would claim all remaining vertical space — inside
+	// an unbounded scroll viewport (Max.Y = 1e6) that pushes downstream
+	// siblings off the canvas.
+	if len(dg.Rows) == 0 {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(headerWidget),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layoutEmptyState(gtx, th, dg.Empty, "No rows")
+			}),
+		)
+	}
+
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Rigid(headerWidget),
+		layout.Flexed(1, rowsWidget),
 	)
 }
 

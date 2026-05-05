@@ -13,6 +13,7 @@ import (
 // ListViewView wraps a scrollable list of selectable items.
 type ListViewView struct {
 	lv *widget.ListView
+	th *theme.Theme // set each frame in layout, used by Empty closure
 }
 
 // ListView creates a scrollable list.
@@ -21,6 +22,7 @@ type ListViewView struct {
 //	    Items("Item 1", "Item 2", "Item 3").
 //	    OnSelect(func(index int) { fmt.Println("Selected:", index) })
 func ListView() *ListViewView {
+	markStatefulCtor()
 	return &ListViewView{lv: widget.NewListView()}
 }
 
@@ -35,6 +37,16 @@ func (l *ListViewView) Items(titles ...string) *ListViewView {
 // ItemWithSub adds an item with a subtitle.
 func (l *ListViewView) ItemWithSub(title, subtitle string) *ListViewView {
 	l.lv.AddItem(title, subtitle)
+	return l
+}
+
+// Empty sets a view to render when the list has no items.
+//
+//	ui.ListView().Items(...).Empty(ui.Text("No messages").Center())
+func (l *ListViewView) Empty(v View) *ListViewView {
+	l.lv.Empty = func(gtx layout.Context) layout.Dimensions {
+		return v.layout(gtx, l.th)
+	}
 	return l
 }
 
@@ -57,5 +69,6 @@ func (l *ListViewView) Width(dp unit.Dp) *Styled         { return Style(l).Width
 func (l *ListViewView) Height(dp unit.Dp) *Styled        { return Style(l).Height(dp) }
 
 func (l *ListViewView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+	l.th = th
 	return l.lv.Layout(gtx, th)
 }

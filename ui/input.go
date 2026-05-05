@@ -25,11 +25,13 @@ type InputView struct {
 // To read the value: name.Value()
 // To set the value: name.SetValue("John")
 func Input() *InputView {
+	markStatefulCtor()
 	return &InputView{field: widget.NewTextField()}
 }
 
 // Password creates a masked password input.
 func Password() *InputView {
+	markStatefulCtor()
 	v := &InputView{field: widget.NewTextField()}
 	v.field.Editor.Mask = '●'
 	v.field.Placeholder = "Password"
@@ -38,6 +40,7 @@ func Password() *InputView {
 
 // Search creates a search-styled input.
 func Search() *InputView {
+	markStatefulCtor()
 	v := &InputView{field: widget.NewTextField()}
 	v.field.Placeholder = "Search..."
 	v.field.CornerRadius = 20
@@ -60,6 +63,27 @@ func (i *InputView) MultiLine() *InputView {
 // Disabled disables the input.
 func (i *InputView) Disabled() *InputView {
 	i.field.Disabled = true
+	return i
+}
+
+// Helper sets helper text rendered below the field in muted color. Replaced
+// by error text when Error is set.
+//
+//	ui.Input().Placeholder("Username").Helper("3–20 characters")
+func (i *InputView) Helper(msg string) *InputView {
+	i.field.HelperText = msg
+	return i
+}
+
+// Error sets error text rendered below the field in the error color and
+// turns the border red. Pass an empty string to clear.
+//
+//	email := ui.Input().Placeholder("Email")
+//	if !valid {
+//	    email.Error("Please enter a valid email address")
+//	}
+func (i *InputView) Error(msg string) *InputView {
+	i.field.ErrorText = msg
 	return i
 }
 

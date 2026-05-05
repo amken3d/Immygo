@@ -76,7 +76,17 @@ type TreeView struct {
 	IndentSize unit.Dp
 	NodeHeight unit.Dp
 
+	// Empty renders when the tree has no roots. If nil, a default
+	// "No items" placeholder is shown.
+	Empty layout.Widget
+
 	list giowidget.List
+}
+
+// WithEmpty sets a custom widget to render when the tree has no roots.
+func (tv *TreeView) WithEmpty(w layout.Widget) *TreeView {
+	tv.Empty = w
+	return tv
 }
 
 // NewTreeView creates a tree view.
@@ -108,6 +118,10 @@ func (tv *TreeView) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 	var visible []*flatNode
 	for _, root := range tv.Roots {
 		tv.flatten(root, 0, &visible)
+	}
+
+	if len(visible) == 0 {
+		return layoutEmptyState(gtx, th, tv.Empty, "No items")
 	}
 
 	return tv.list.Layout(gtx, len(visible), func(gtx layout.Context, index int) layout.Dimensions {

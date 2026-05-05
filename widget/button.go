@@ -3,6 +3,7 @@ package widget
 import (
 	"image"
 	"image/color"
+	"time"
 
 	giofont "gioui.org/font"
 	"gioui.org/layout"
@@ -38,15 +39,20 @@ type Button struct {
 	OnClick      func()
 
 	clickable giowidget.Clickable
+	focusAnim *style.FloatAnimator
 }
 
 // NewButton creates a new button with the given label.
+//
+// Default corner radius and padding are resolved from the theme tokens
+// (th.Corner.SM, th.Space.SM/LG) at Layout time. Use WithCornerRadius
+// to override.
 func NewButton(text string) *Button {
 	return &Button{
-		Text:         text,
-		Variant:      ButtonPrimary,
-		CornerRadius: 6,
-		MinWidth:     80,
+		Text:      text,
+		Variant:   ButtonPrimary,
+		MinWidth:  80,
+		focusAnim: style.NewFloatAnimator(180*time.Millisecond, 0),
 	}
 }
 
@@ -94,6 +100,21 @@ func (b *Button) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 
 	hovered := b.clickable.Hovered()
 	pressed := b.clickable.Pressed()
+	focused := gtx.Focused(&b.clickable)
+
+	// Animate focus ring
+	if b.focusAnim == nil {
+		b.focusAnim = style.NewFloatAnimator(180*time.Millisecond, 0)
+	}
+	if focused {
+		b.focusAnim.SetTarget(1.0)
+	} else {
+		b.focusAnim.SetTarget(0.0)
+	}
+	focusProgress := b.focusAnim.Value()
+	if b.focusAnim.Active() {
+		gtx.Execute(op.InvalidateCmd{})
+	}
 
 	var state style.State
 	if b.Disabled {
@@ -107,7 +128,11 @@ func (b *Button) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 	}
 
 	bg, fg, border := b.resolveColors(th, state)
-	radius := gtx.Dp(b.CornerRadius)
+	cornerR := b.CornerRadius
+	if cornerR == 0 {
+		cornerR = th.Corner.SM
+	}
+	radius := gtx.Dp(cornerR)
 	minW := gtx.Dp(b.MinWidth)
 
 	return b.clickable.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -129,6 +154,14 @@ func (b *Button) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 						elev = 0
 					}
 					drawShadow(gtx, size, radius, elev)
+				}
+
+				// Focus glow ring (drawn behind the fill so it appears as a halo)
+				if focusProgress > 0.01 && !b.Disabled {
+					glowAlpha := uint8(float32(60) * focusProgress)
+					glowCol := theme.WithAlpha(th.Palette.Primary, glowAlpha)
+					spread := int(3.0 * focusProgress)
+					drawGlowRing(gtx, size, radius, glowCol, 1, spread)
 				}
 
 				// Background fill
@@ -154,10 +187,10 @@ func (b *Button) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 			}),
 			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
 				inset := layout.Inset{
-					Top:    unit.Dp(8),
-					Bottom: unit.Dp(8),
-					Left:   unit.Dp(16),
-					Right:  unit.Dp(16),
+					Top:    th.Space.SM,
+					Bottom: th.Space.SM,
+					Left:   th.Space.LG,
+					Right:  th.Space.LG,
 				}
 				return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					f := th.DefaultFont

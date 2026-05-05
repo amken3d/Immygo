@@ -11,6 +11,8 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+
+	"github.com/amken3d/immygo/theme"
 )
 
 // fillRect draws a filled rounded rectangle.
@@ -236,4 +238,29 @@ func clampUint8(val, max int) uint8 {
 		return uint8(max)
 	}
 	return uint8(val)
+}
+
+// layoutEmptyState renders an empty-state placeholder. If custom is provided,
+// it's used; otherwise a centered, muted fallback message is drawn so data
+// widgets don't render as empty rectangles.
+//
+// The returned dimensions match the placeholder's natural height — we don't
+// use layout.Center for vertical centering because it returns the parent's
+// Max constraint, which inside a scroll viewport is 1e6 and would push
+// downstream siblings off-screen.
+func layoutEmptyState(gtx layout.Context, th *theme.Theme, custom layout.Widget, fallback string) layout.Dimensions {
+	inset := layout.UniformInset(th.Space.XL)
+	content := custom
+	if content == nil {
+		content = func(gtx layout.Context) layout.Dimensions {
+			col := theme.WithAlpha(th.Palette.OnSurface, 120)
+			return NewLabel(fallback).WithStyle(LabelBodySmall).WithColor(col).Layout(gtx, th)
+		}
+	}
+	return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		// Horizontal centering via SpaceSides; vertical sizing is natural.
+		return layout.Flex{Axis: layout.Horizontal, Spacing: layout.SpaceSides}.Layout(gtx,
+			layout.Rigid(content),
+		)
+	})
 }

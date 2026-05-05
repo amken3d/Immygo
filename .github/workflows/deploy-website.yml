@@ -1,0 +1,95 @@
+name: Deploy website to Hostinger
+
+# Triggers:
+#   - Push to main (auto-deploys every merged change).
+#   - Manual "Run workflow" button on GitHub's Actions tab — the
+#     "one-click" flow when you want to redeploy without pushing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'examples/ui-showcase/**'
+      - 'ui/**'
+      - 'widget/**'
+      - 'theme/**'
+      - 'style/**'
+      - 'layout/**'
+      - 'app/**'
+      - 'ai/**'
+      - 'scripts/build-wasm-showcase.sh'
+      - '.github/workflows/deploy-website.yml'
+  workflow_dispatch: {}
+
+# Required GitHub repository secrets (Settings → Secrets → Actions):
+#
+#   HOSTINGER_FTP_SERVER   e.g. files.000webhost.com or your hostinger ftp host
+#   HOSTINGER_FTP_USER     your hostinger FTP username
+#   HOSTINGER_FTP_PASSWORD your hostinger FTP password
+#   HOSTINGER_FTP_DIR      target directory on the server, usually
+#                          public_html/ for the primary domain or
+#                          domains/<your-domain>/public_html/ for
+#                          additional domains. Trailing slash matters.
+
+concurrency:
+  group: deploy-website
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Build wasm showcase
+        run: |
+          chmod +x scripts/build-wasm-showcase.sh
+          scripts/build-wasm-showcase.sh website/static/showcase/
+
+      - name: Set up Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: 'latest'
+          extended: true
+
+      - name: Build Hugo site
+        working-directory: website
+        run: hugo --minify --gc
+
+      - name: Compress wasm with gzip
+        run: |
+          if command -v gzip >/dev/null; then
+            gzip -9 -k website/public/showcase/showcase.wasm || true
+          fi
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USER }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          local-dir: website/public/
+          server-dir: ${{ secrets.HOSTINGER_FTP_DIR }}
+          # Skip files unchanged since last deploy. Speeds up
+          # subsequent runs (only the changed Hugo output uploads).
+          state-name: .deploy-state.json
+          # Don't upload empty directories or hidden git metadata.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.DS_Store
+
+      - name: Summary
+        run: |
+          echo "Deployed to: $(hostname -f) → ${{ secrets.HOSTINGER_FTP_SERVER }}:${{ secrets.HOSTINGER_FTP_DIR }}"
+          echo "Wasm bundle:  /showcase/"

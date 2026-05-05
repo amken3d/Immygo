@@ -28,7 +28,17 @@ type ListView struct {
 	SelectedIndex int
 	OnSelect      func(index int)
 
+	// Empty renders when there are no items. If nil, a default
+	// "No items" placeholder is shown.
+	Empty layout.Widget
+
 	list giowidget.List
+}
+
+// WithEmpty sets a custom widget to render when the list has no items.
+func (lv *ListView) WithEmpty(w layout.Widget) *ListView {
+	lv.Empty = w
+	return lv
 }
 
 // NewListView creates a new list view.
@@ -63,6 +73,9 @@ func (lv *ListView) WithOnSelect(fn func(int)) *ListView {
 
 // Layout renders the list view.
 func (lv *ListView) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+	if len(lv.Items) == 0 {
+		return layoutEmptyState(gtx, th, lv.Empty, "No items")
+	}
 	return lv.list.Layout(gtx, len(lv.Items), func(gtx layout.Context, index int) layout.Dimensions {
 		item := lv.Items[index]
 

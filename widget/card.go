@@ -21,12 +21,14 @@ type Card struct {
 }
 
 // NewCard creates a card with default Fluent Design appearance.
+//
+// CornerRadius and Padding default to theme tokens (th.Corner.MD,
+// th.Space.LG) when left at zero. Use WithCornerRadius / WithPadding
+// to override.
 func NewCard() *Card {
 	return &Card{
-		CornerRadius: 8,
-		Elevation:    1,
-		Padding:      16,
-		Hoverable:    true,
+		Elevation: 1,
+		Hoverable: true,
 	}
 }
 
@@ -62,7 +64,15 @@ func (c *Card) Child(w layout.Widget) *Card {
 
 // Layout renders the card.
 func (c *Card) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
-	radius := gtx.Dp(c.CornerRadius)
+	cornerR := c.CornerRadius
+	if cornerR == 0 {
+		cornerR = th.Corner.MD
+	}
+	pad := c.Padding
+	if pad == 0 {
+		pad = th.Space.LG
+	}
+	radius := gtx.Dp(cornerR)
 	currentElev := c.Elevation
 
 	return layout.Stack{}.Layout(gtx,
@@ -83,11 +93,11 @@ func (c *Card) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 		}),
 		// Content
 		layout.Stacked(func(gtx layout.Context) layout.Dimensions {
-			inset := layout.UniformInset(c.Padding)
+			inset := layout.UniformInset(pad)
 			if c.child != nil {
 				return inset.Layout(gtx, c.child)
 			}
-			padding := gtx.Dp(c.Padding)
+			padding := gtx.Dp(pad)
 			return layout.Dimensions{Size: image.Point{X: padding * 2, Y: padding * 2}}
 		}),
 	)

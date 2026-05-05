@@ -23,19 +23,23 @@ type RadioGroup struct {
 
 	clickables []giowidget.Clickable
 	anims      []*style.FloatAnimator
+	focusAnims []*style.FloatAnimator
 }
 
 // NewRadioGroup creates a radio button group.
 func NewRadioGroup(options ...string) *RadioGroup {
 	anims := make([]*style.FloatAnimator, len(options))
+	focusAnims := make([]*style.FloatAnimator, len(options))
 	for i := range anims {
 		anims[i] = style.NewFloatAnimator(150*time.Millisecond, 0)
+		focusAnims[i] = style.NewFloatAnimator(180*time.Millisecond, 0)
 	}
 	return &RadioGroup{
 		Options:       options,
 		SelectedIndex: -1,
 		clickables:    make([]giowidget.Clickable, len(options)),
 		anims:         anims,
+		focusAnims:    focusAnims,
 	}
 }
 
@@ -57,8 +61,10 @@ func (r *RadioGroup) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensio
 	if len(r.clickables) != len(r.Options) {
 		r.clickables = make([]giowidget.Clickable, len(r.Options))
 		r.anims = make([]*style.FloatAnimator, len(r.Options))
+		r.focusAnims = make([]*style.FloatAnimator, len(r.Options))
 		for i := range r.anims {
 			r.anims[i] = style.NewFloatAnimator(150*time.Millisecond, 0)
+			r.focusAnims[i] = style.NewFloatAnimator(180*time.Millisecond, 0)
 		}
 	}
 
@@ -92,8 +98,16 @@ func (r *RadioGroup) layoutOption(gtx layout.Context, th *theme.Theme, index int
 	} else {
 		r.anims[index].SetTarget(0.0)
 	}
+	if r.focusAnims[index] == nil {
+		r.focusAnims[index] = style.NewFloatAnimator(180*time.Millisecond, 0)
+	}
+	if gtx.Focused(&r.clickables[index]) {
+		r.focusAnims[index].SetTarget(1.0)
+	} else {
+		r.focusAnims[index].SetTarget(0.0)
+	}
 
-	if r.anims[index].Active() {
+	if r.anims[index].Active() || r.focusAnims[index].Active() {
 		gtx.Execute(op.InvalidateCmd{})
 	}
 
@@ -104,6 +118,15 @@ func (r *RadioGroup) layoutOption(gtx layout.Context, th *theme.Theme, index int
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				size := image.Point{X: circleSize, Y: circleSize}
 				progress := r.anims[index].Value()
+				focusProgress := r.focusAnims[index].Value()
+
+				// Focus glow ring around the circle
+				if focusProgress > 0.01 {
+					glowAlpha := uint8(float32(60) * focusProgress)
+					glowCol := theme.WithAlpha(th.Palette.Primary, glowAlpha)
+					spread := int(3.0 * focusProgress)
+					drawGlowRing(gtx, size, circleSize/2, glowCol, 1, spread)
+				}
 
 				// Outer circle
 				borderColor := lerpColorNRGBA(th.Palette.Outline, th.Palette.Primary, progress)

@@ -100,6 +100,7 @@ type SnackbarView struct {
 //
 // Place at the end of your view tree so it renders on top.
 func SnackbarManager() *SnackbarView {
+	markStatefulCtor()
 	return &SnackbarView{snackbar: widget.NewSnackbar()}
 }
 
@@ -141,6 +142,7 @@ type ContextMenuView struct {
 //	    ui.MenuEntry("Delete", func() { ... }),
 //	)
 func ContextMenu(child View, items ...widget.MenuItem) *ContextMenuView {
+	markStatefulCtor()
 	return &ContextMenuView{
 		menu:  widget.NewContextMenu(items...),
 		child: child,
@@ -175,6 +177,7 @@ func (cm *ContextMenuView) layout(gtx layout.Context, th *theme.Theme) layout.Di
 // DataGridView wraps a sortable, scrollable data table.
 type DataGridView struct {
 	grid *widget.DataGrid
+	th   *theme.Theme // set each frame, used by Empty closure
 }
 
 // DataGrid creates a data table with columns.
@@ -185,6 +188,7 @@ type DataGridView struct {
 //	    ui.Col("Status").Sortable(),
 //	).Rows(data).OnRowSelect(func(i int) { ... })
 func DataGrid(cols ...widget.Column) *DataGridView {
+	markStatefulCtor()
 	return &DataGridView{grid: widget.NewDataGrid(cols...)}
 }
 
@@ -233,11 +237,22 @@ func (dg *DataGridView) SelectedRow() int {
 	return dg.grid.SelectedRow
 }
 
+// Empty sets a view to render below the header when there are no rows.
+//
+//	grid.Empty(ui.Text("No results").Center())
+func (dg *DataGridView) Empty(v View) *DataGridView {
+	dg.grid.Empty = func(gtx layout.Context) layout.Dimensions {
+		return v.layout(gtx, dg.th)
+	}
+	return dg
+}
+
 func (dg *DataGridView) Padding(dp unit.Dp) *Styled { return Style(dg).Padding(dp) }
 func (dg *DataGridView) Width(dp unit.Dp) *Styled   { return Style(dg).Width(dp) }
 func (dg *DataGridView) Height(dp unit.Dp) *Styled  { return Style(dg).Height(dp) }
 
 func (dg *DataGridView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+	dg.th = th
 	return dg.grid.Layout(gtx, th)
 }
 
@@ -254,6 +269,7 @@ func TreeNode(label string) *TreeNodeView {
 // TreeViewView wraps a hierarchical tree view.
 type TreeViewView struct {
 	tv *widget.TreeView
+	th *theme.Theme // set each frame, used by Empty closure
 }
 
 // TreeView creates a tree view with root nodes.
@@ -266,6 +282,7 @@ type TreeViewView struct {
 //	    ui.TreeNode("Images"),
 //	).OnSelect(func(node *ui.TreeNodeView) { ... })
 func Tree(roots ...*widget.TreeNode) *TreeViewView {
+	markStatefulCtor()
 	return &TreeViewView{tv: widget.NewTreeView(roots...)}
 }
 
@@ -276,6 +293,16 @@ func (t *TreeViewView) OnSelect(fn func(*widget.TreeNode)) *TreeViewView {
 }
 
 // IndentSize sets the indentation per level.
+// Empty sets a view to render when the tree has no roots.
+//
+//	tree.Empty(ui.Text("No items").Center())
+func (t *TreeViewView) Empty(v View) *TreeViewView {
+	t.tv.Empty = func(gtx layout.Context) layout.Dimensions {
+		return v.layout(gtx, t.th)
+	}
+	return t
+}
+
 func (t *TreeViewView) IndentSize(dp unit.Dp) *TreeViewView {
 	t.tv.WithIndentSize(dp)
 	return t
@@ -287,6 +314,7 @@ func (t *TreeViewView) Width(dp unit.Dp) *Styled         { return Style(t).Width
 func (t *TreeViewView) Height(dp unit.Dp) *Styled        { return Style(t).Height(dp) }
 
 func (t *TreeViewView) layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
+	t.th = th
 	return t.tv.Layout(gtx, th)
 }
 
@@ -305,6 +333,7 @@ type AccordionView struct {
 //	    Section("Advanced", advancedContent).
 //	    SingleOpen(true)
 func Accordion() *AccordionView {
+	markStatefulCtor()
 	return &AccordionView{acc: widget.NewAccordion()}
 }
 
@@ -357,6 +386,7 @@ type DrawerView struct {
 //	drawer := ui.Drawer(menuContent).Width(280)
 //	drawer.Open() / drawer.Close() / drawer.Toggle()
 func Drawer(content View) *DrawerView {
+	markStatefulCtor()
 	dv := &DrawerView{drawer: widget.NewDrawer()}
 	dv.drawer.WithContent(func(gtx layout.Context) layout.Dimensions {
 		return content.layout(gtx, dv.th)
@@ -404,6 +434,7 @@ type DatePickerView struct {
 //
 //	picker := ui.DatePicker(time.Now()).OnChange(func(t time.Time) { ... })
 func DatePicker(initial time.Time) *DatePickerView {
+	markStatefulCtor()
 	return &DatePickerView{dp: widget.NewDatePicker(initial)}
 }
 

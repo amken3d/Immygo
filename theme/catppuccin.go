@@ -1,0 +1,77 @@
+package theme
+
+import (
+	giofont "gioui.org/font"
+	"gioui.org/font/gofont"
+	"gioui.org/text"
+)
+
+// Catppuccin theme palettes — https://github.com/catppuccin/catppuccin
+//
+// Two of the four official flavors are exposed: Latte (light) and Mocha
+// (the darkest dark). Mauve is used as the primary accent in both
+// because it's the canonical "primary" in Catppuccin tooling.
+
+// CatppuccinLatte returns the Catppuccin Latte (light) theme.
+func CatppuccinLatte() *Theme {
+	return &Theme{
+		Palette: Palette{
+			Primary:          NRGBA(0x88, 0x39, 0xEF, 0xFF), // mauve
+			PrimaryLight:     NRGBA(0xEA, 0x76, 0xCB, 0xFF), // pink
+			PrimaryDark:      NRGBA(0x71, 0x28, 0xC0, 0xFF),
+			OnPrimary:        NRGBA(0xFF, 0xFF, 0xFF, 0xFF),
+			Secondary:        NRGBA(0x1E, 0x66, 0xF5, 0xFF), // blue
+			OnSecondary:      NRGBA(0xFF, 0xFF, 0xFF, 0xFF),
+			Background:       NRGBA(0xEF, 0xF1, 0xF5, 0xFF), // base
+			Surface:          NRGBA(0xE6, 0xE9, 0xEF, 0xFF), // mantle
+			SurfaceVariant:   NRGBA(0xCC, 0xD0, 0xDA, 0xFF), // surface0
+			OnBackground:     NRGBA(0x4C, 0x4F, 0x69, 0xFF), // text
+			OnSurface:        NRGBA(0x4C, 0x4F, 0x69, 0xFF),
+			Error:            NRGBA(0xD2, 0x0F, 0x39, 0xFF), // red
+			OnError:          NRGBA(0xFF, 0xFF, 0xFF, 0xFF),
+			Success:          NRGBA(0x40, 0xA0, 0x2B, 0xFF), // green
+			Warning:          NRGBA(0xDF, 0x8E, 0x1D, 0xFF), // yellow
+			Info:             NRGBA(0x04, 0xA5, 0xE5, 0xFF), // sky
+			Outline:          NRGBA(0xBC, 0xC0, 0xCC, 0xFF), // surface1
+			OutlineVariant:   NRGBA(0xCC, 0xD0, 0xDA, 0xFF),
+			InverseSurface:   NRGBA(0x4C, 0x4F, 0x69, 0xFF),
+			InverseOnSurface: NRGBA(0xEF, 0xF1, 0xF5, 0xFF),
+			Scrim:            NRGBA(0x00, 0x00, 0x00, 0x66),
+		},
+		Typo:        defaultTypography(),
+		Space:       defaultSpacing(),
+		Corner:      defaultCornerRadius(),
+		Elev:        defaultElevation(),
+		Shaper:      text.NewShaper(text.WithCollection(gofont.Collection())),
+		DefaultFont: giofont.Font{},
+	}
+}
+
+// CatppuccinMocha returns the Catppuccin Mocha (darkest dark) theme.
+func CatppuccinMocha() *Theme {
+	t := CatppuccinLatte()
+	t.Palette = Palette{
+		Primary:          NRGBA(0xCB, 0xA6, 0xF7, 0xFF), // mauve
+		PrimaryLight:     NRGBA(0xF5, 0xC2, 0xE7, 0xFF), // pink
+		PrimaryDark:      NRGBA(0xA8, 0x83, 0xD4, 0xFF),
+		OnPrimary:        NRGBA(0x1E, 0x1E, 0x2E, 0xFF),
+		Secondary:        NRGBA(0x89, 0xB4, 0xFA, 0xFF), // blue
+		OnSecondary:      NRGBA(0x1E, 0x1E, 0x2E, 0xFF),
+		Background:       NRGBA(0x1E, 0x1E, 0x2E, 0xFF), // base
+		Surface:          NRGBA(0x18, 0x18, 0x25, 0xFF), // mantle
+		SurfaceVariant:   NRGBA(0x31, 0x32, 0x44, 0xFF), // surface0
+		OnBackground:     NRGBA(0xCD, 0xD6, 0xF4, 0xFF), // text
+		OnSurface:        NRGBA(0xCD, 0xD6, 0xF4, 0xFF),
+		Error:            NRGBA(0xF3, 0x8B, 0xA8, 0xFF), // red
+		OnError:          NRGBA(0x1E, 0x1E, 0x2E, 0xFF),
+		Success:          NRGBA(0xA6, 0xE3, 0xA1, 0xFF), // green
+		Warning:          NRGBA(0xF9, 0xE2, 0xAF, 0xFF), // yellow
+		Info:             NRGBA(0x89, 0xDC, 0xEB, 0xFF), // sky
+		Outline:          NRGBA(0x45, 0x47, 0x5A, 0xFF), // surface1
+		OutlineVariant:   NRGBA(0x31, 0x32, 0x44, 0xFF),
+		InverseSurface:   NRGBA(0xCD, 0xD6, 0xF4, 0xFF),
+		InverseOnSurface: NRGBA(0x1E, 0x1E, 0x2E, 0xFF),
+		Scrim:            NRGBA(0x00, 0x00, 0x00, 0x99),
+	}
+	return t
+}

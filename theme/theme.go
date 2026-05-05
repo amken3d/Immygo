@@ -247,6 +247,52 @@ func FluentDark() *Theme {
 	return t
 }
 
+// WithFontScale returns a copy of the theme with every typography size
+// (and matching line height) multiplied by scale. 1.0 is the default
+// (no change). Useful for "Compact" / "Comfortable" / "Large" font
+// settings without writing a whole new typography scale.
+//
+//	smallFonts := theme.FluentLight().WithFontScale(0.85)
+//	largeFonts := theme.FluentLight().WithFontScale(1.25)
+//
+// Returns the receiver unchanged when scale <= 0 or == 1.0.
+func (th *Theme) WithFontScale(scale float32) *Theme {
+	if scale <= 0 || scale == 1.0 {
+		return th
+	}
+	cp := *th
+	cp.Typo = scaleTypography(th.Typo, scale)
+	return &cp
+}
+
+func scaleTypography(t Typography, s float32) Typography {
+	scaleStyle := func(ts TextStyle) TextStyle {
+		return TextStyle{
+			Size:       unit.Sp(float32(ts.Size) * s),
+			Weight:     ts.Weight,
+			LineHeight: unit.Sp(float32(ts.LineHeight) * s),
+			Alignment:  ts.Alignment,
+		}
+	}
+	return Typography{
+		DisplayLarge:   scaleStyle(t.DisplayLarge),
+		DisplayMedium:  scaleStyle(t.DisplayMedium),
+		DisplaySmall:   scaleStyle(t.DisplaySmall),
+		HeadlineLarge:  scaleStyle(t.HeadlineLarge),
+		HeadlineMedium: scaleStyle(t.HeadlineMedium),
+		HeadlineSmall:  scaleStyle(t.HeadlineSmall),
+		TitleLarge:     scaleStyle(t.TitleLarge),
+		TitleMedium:    scaleStyle(t.TitleMedium),
+		TitleSmall:     scaleStyle(t.TitleSmall),
+		BodyLarge:      scaleStyle(t.BodyLarge),
+		BodyMedium:     scaleStyle(t.BodyMedium),
+		BodySmall:      scaleStyle(t.BodySmall),
+		LabelLarge:     scaleStyle(t.LabelLarge),
+		LabelMedium:    scaleStyle(t.LabelMedium),
+		LabelSmall:     scaleStyle(t.LabelSmall),
+	}
+}
+
 // NRGBA is a convenience constructor for color.NRGBA.
 func NRGBA(r, g, b, a uint8) color.NRGBA {
 	return color.NRGBA{R: r, G: g, B: b, A: a}
@@ -273,22 +319,27 @@ func lerpByte(a, b uint8, t float32) uint8 {
 }
 
 func defaultTypography() Typography {
+	// Sizes are roughly 0.85× the Material 3 baseline values. The
+	// Material defaults end up too large for native desktop UIs at
+	// typical DPI; this scale matches what previously had to be
+	// applied via WithFontScale(0.85) and feels like the right
+	// default for Fluent + sibling themes.
 	return Typography{
-		DisplayLarge:   TextStyle{Size: 57, Weight: giofont.Medium, LineHeight: 64},
-		DisplayMedium:  TextStyle{Size: 45, Weight: giofont.Medium, LineHeight: 52},
-		DisplaySmall:   TextStyle{Size: 36, Weight: giofont.Medium, LineHeight: 44},
-		HeadlineLarge:  TextStyle{Size: 32, Weight: giofont.Bold, LineHeight: 40},
-		HeadlineMedium: TextStyle{Size: 28, Weight: giofont.Bold, LineHeight: 36},
-		HeadlineSmall:  TextStyle{Size: 24, Weight: giofont.Bold, LineHeight: 32},
-		TitleLarge:     TextStyle{Size: 22, Weight: giofont.SemiBold, LineHeight: 28},
-		TitleMedium:    TextStyle{Size: 16, Weight: giofont.SemiBold, LineHeight: 24},
-		TitleSmall:     TextStyle{Size: 14, Weight: giofont.SemiBold, LineHeight: 20},
-		BodyLarge:      TextStyle{Size: 16, Weight: giofont.Medium, LineHeight: 24},
-		BodyMedium:     TextStyle{Size: 14, Weight: giofont.Medium, LineHeight: 20},
-		BodySmall:      TextStyle{Size: 12, Weight: giofont.Medium, LineHeight: 16},
-		LabelLarge:     TextStyle{Size: 14, Weight: giofont.SemiBold, LineHeight: 20},
-		LabelMedium:    TextStyle{Size: 12, Weight: giofont.SemiBold, LineHeight: 16},
-		LabelSmall:     TextStyle{Size: 11, Weight: giofont.SemiBold, LineHeight: 16},
+		DisplayLarge:   TextStyle{Size: 48, Weight: giofont.Medium, LineHeight: 54},
+		DisplayMedium:  TextStyle{Size: 38, Weight: giofont.Medium, LineHeight: 44},
+		DisplaySmall:   TextStyle{Size: 31, Weight: giofont.Medium, LineHeight: 37},
+		HeadlineLarge:  TextStyle{Size: 27, Weight: giofont.Bold, LineHeight: 34},
+		HeadlineMedium: TextStyle{Size: 24, Weight: giofont.Bold, LineHeight: 31},
+		HeadlineSmall:  TextStyle{Size: 20, Weight: giofont.Bold, LineHeight: 27},
+		TitleLarge:     TextStyle{Size: 19, Weight: giofont.SemiBold, LineHeight: 24},
+		TitleMedium:    TextStyle{Size: 14, Weight: giofont.SemiBold, LineHeight: 20},
+		TitleSmall:     TextStyle{Size: 12, Weight: giofont.SemiBold, LineHeight: 17},
+		BodyLarge:      TextStyle{Size: 14, Weight: giofont.Medium, LineHeight: 20},
+		BodyMedium:     TextStyle{Size: 12, Weight: giofont.Medium, LineHeight: 17},
+		BodySmall:      TextStyle{Size: 10, Weight: giofont.Medium, LineHeight: 14},
+		LabelLarge:     TextStyle{Size: 12, Weight: giofont.SemiBold, LineHeight: 17},
+		LabelMedium:    TextStyle{Size: 10, Weight: giofont.SemiBold, LineHeight: 14},
+		LabelSmall:     TextStyle{Size: 9, Weight: giofont.SemiBold, LineHeight: 14},
 	}
 }
 

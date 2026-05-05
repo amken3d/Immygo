@@ -71,16 +71,16 @@ func (b *Badge) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 		return layout.Stack{}.Layout(gtx,
 			layout.Expanded(func(gtx layout.Context) layout.Dimensions {
 				size := image.Point{X: gtx.Constraints.Min.X, Y: gtx.Constraints.Min.Y}
-				radius := gtx.Dp(unit.Dp(12))
+				radius := gtx.Dp(th.Corner.LG)
 				fillRect(gtx, bg, size, radius)
 				return layout.Dimensions{Size: size}
 			}),
 			layout.Stacked(func(gtx layout.Context) layout.Dimensions {
 				inset := layout.Inset{
-					Top:    unit.Dp(4),
-					Bottom: unit.Dp(4),
-					Left:   unit.Dp(10),
-					Right:  unit.Dp(10),
+					Top:    th.Space.XS,
+					Bottom: th.Space.XS,
+					Left:   th.Space.SM,
+					Right:  th.Space.SM,
 				}
 				return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					children := []layout.FlexChild{

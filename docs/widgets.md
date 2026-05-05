@@ -878,6 +878,35 @@ rt.Layout(gtx, th)
 
 ---
 
+## Canvas (Flow Graph)
+
+A Node-RED-style flow-graph editor with pan/zoom, drag, multi-select, marquee, snap-to-grid, save/load, typed ports, and **live ImmyGo widgets inside node bodies**. Significant enough to deserve its own guide — see [Node Canvas](canvas.md). Quick reference:
+
+```go
+graph := &widget.Graph{
+    Nodes: []widget.Node{
+        {ID: "a", Title: "Source", X: 60, Y: 80,
+            Outputs: []widget.Port{{Name: "out"}}},
+        {ID: "b", Title: "Sink", X: 320, Y: 80,
+            Inputs: []widget.Port{{Name: "in"}}},
+    },
+    Edges: []widget.Edge{{From: "a", FromPort: 0, To: "b", ToPort: 0}},
+}
+
+canvas := ui.Canvas(graph)
+ui.Run("Flow", func() ui.View { return canvas })
+```
+
+Companion APIs:
+
+- `widget.NewCatalog()` / `Register(NodeDef)` — register node types so users can spawn them from a palette and so the graph can round-trip via JSON.
+- `ui.NodePalette(catalog, onAdd)` — sidebar of buttons, one per registered type.
+- `ui.NodeBody(func() ui.View)` — adapt any ImmyGo view as a node body. Inner widgets (sliders, inputs, toggles) get pointer events normally; users drag the node from the header.
+- `ui.PortLegend(catalog)` — color-coded key for typed ports.
+- `widget.MarshalGraph` / `UnmarshalGraph` — JSON persistence; bodies rebuild from the catalog on load.
+
+---
+
 ## Prototype (AI-Generated UI)
 
 Generate a UI view from a natural language description at runtime. Useful for rapid exploration and prototyping.

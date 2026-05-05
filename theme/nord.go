@@ -1,0 +1,76 @@
+package theme
+
+import (
+	giofont "gioui.org/font"
+	"gioui.org/font/gofont"
+	"gioui.org/text"
+)
+
+// Nord theme palettes — https://www.nordtheme.com
+//
+// Nord groups its colors into Polar Night (darks), Snow Storm (lights),
+// Frost (cool blues used for accents), and Aurora (warm semantic colors).
+
+// NordLight returns the Nord Snow Storm light theme.
+func NordLight() *Theme {
+	return &Theme{
+		Palette: Palette{
+			Primary:          NRGBA(0x5E, 0x81, 0xAC, 0xFF), // frost-4
+			PrimaryLight:     NRGBA(0x81, 0xA1, 0xC1, 0xFF), // frost-3
+			PrimaryDark:      NRGBA(0x4C, 0x66, 0x8C, 0xFF),
+			OnPrimary:        NRGBA(0xEC, 0xEF, 0xF4, 0xFF),
+			Secondary:        NRGBA(0x88, 0xC0, 0xD0, 0xFF), // frost-2
+			OnSecondary:      NRGBA(0x2E, 0x34, 0x40, 0xFF),
+			Background:       NRGBA(0xEC, 0xEF, 0xF4, 0xFF), // snow-storm-3
+			Surface:          NRGBA(0xE5, 0xE9, 0xF0, 0xFF), // snow-storm-2
+			SurfaceVariant:   NRGBA(0xD8, 0xDE, 0xE9, 0xFF), // snow-storm-1
+			OnBackground:     NRGBA(0x2E, 0x34, 0x40, 0xFF), // polar-night-1
+			OnSurface:        NRGBA(0x2E, 0x34, 0x40, 0xFF),
+			Error:            NRGBA(0xBF, 0x61, 0x6A, 0xFF), // aurora red
+			OnError:          NRGBA(0xEC, 0xEF, 0xF4, 0xFF),
+			Success:          NRGBA(0xA3, 0xBE, 0x8C, 0xFF), // aurora green
+			Warning:          NRGBA(0xEB, 0xCB, 0x8B, 0xFF), // aurora yellow
+			Info:             NRGBA(0x8F, 0xBC, 0xBB, 0xFF), // frost-1
+			Outline:          NRGBA(0xD8, 0xDE, 0xE9, 0xFF),
+			OutlineVariant:   NRGBA(0xE5, 0xE9, 0xF0, 0xFF),
+			InverseSurface:   NRGBA(0x2E, 0x34, 0x40, 0xFF),
+			InverseOnSurface: NRGBA(0xEC, 0xEF, 0xF4, 0xFF),
+			Scrim:            NRGBA(0x00, 0x00, 0x00, 0x66),
+		},
+		Typo:        defaultTypography(),
+		Space:       defaultSpacing(),
+		Corner:      defaultCornerRadius(),
+		Elev:        defaultElevation(),
+		Shaper:      text.NewShaper(text.WithCollection(gofont.Collection())),
+		DefaultFont: giofont.Font{},
+	}
+}
+
+// NordDark returns the Nord Polar Night dark theme.
+func NordDark() *Theme {
+	t := NordLight()
+	t.Palette = Palette{
+		Primary:          NRGBA(0x88, 0xC0, 0xD0, 0xFF), // frost-2
+		PrimaryLight:     NRGBA(0x8F, 0xBC, 0xBB, 0xFF), // frost-1
+		PrimaryDark:      NRGBA(0x5E, 0x81, 0xAC, 0xFF), // frost-4
+		OnPrimary:        NRGBA(0x2E, 0x34, 0x40, 0xFF),
+		Secondary:        NRGBA(0x81, 0xA1, 0xC1, 0xFF), // frost-3
+		OnSecondary:      NRGBA(0x2E, 0x34, 0x40, 0xFF),
+		Background:       NRGBA(0x2E, 0x34, 0x40, 0xFF), // polar-night-1
+		Surface:          NRGBA(0x3B, 0x42, 0x52, 0xFF), // polar-night-2
+		SurfaceVariant:   NRGBA(0x43, 0x4C, 0x5E, 0xFF), // polar-night-3
+		OnBackground:     NRGBA(0xEC, 0xEF, 0xF4, 0xFF), // snow-storm-3
+		OnSurface:        NRGBA(0xEC, 0xEF, 0xF4, 0xFF),
+		Error:            NRGBA(0xBF, 0x61, 0x6A, 0xFF), // aurora red
+		OnError:          NRGBA(0xEC, 0xEF, 0xF4, 0xFF),
+		Success:          NRGBA(0xA3, 0xBE, 0x8C, 0xFF), // aurora green
+		Warning:          NRGBA(0xEB, 0xCB, 0x8B, 0xFF), // aurora yellow
+		Info:             NRGBA(0x8F, 0xBC, 0xBB, 0xFF), // frost-1
+		Outline:          NRGBA(0x4C, 0x56, 0x6A, 0xFF), // polar-night-4
+		OutlineVariant:   NRGBA(0x43, 0x4C, 0x5E, 0xFF),
+		InverseSurface:   NRGBA(0xEC, 0xEF, 0xF4, 0xFF),
+		InverseOnSurface: NRGBA(0x2E, 0x34, 0x40, 0xFF),
+		Scrim:            NRGBA(0x00, 0x00, 0x00, 0x99),
+	}
+	return t
+}

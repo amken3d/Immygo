@@ -99,6 +99,33 @@ func OnInit(fn func()) Option {
 //	        )
 //	    })
 //	}
+//
+// # Stateful widget lifecycle
+//
+// Stateful widgets — Dropdown, ContextMenu, Toggle, Slider, Input, Password,
+// Search, Checkbox, RadioGroup, DatePicker, Accordion, DataGrid, Tree,
+// Drawer, Dialog, Alert, SnackbarManager — must be constructed ONCE outside
+// the build closure and captured by closure. They retain internal state
+// (cursor position, popup open flag, scroll offset, animation progress)
+// across frames. Constructing them inside the build closure resets that
+// state every frame and they will appear non-functional.
+//
+//	// ✓ Correct
+//	name := ui.Input().Placeholder("Name")
+//	ui.Run("App", func() ui.View {
+//	    return ui.VStack(name, ui.Button("Submit"))
+//	})
+//
+//	// ✗ Wrong — Input state resets every frame
+//	ui.Run("App", func() ui.View {
+//	    return ui.VStack(ui.Input().Placeholder("Name"), ui.Button("Submit"))
+//	})
+//
+// Stateless views (Text, Button, layout containers, Card, Divider, Icon,
+// Spacer, Flex, ZStack) can be constructed inside the closure freely.
+//
+// Set IMMYGO_DEBUG=1 to log a warning when a stateful widget is constructed
+// inside the build closure.
 func Run(title string, build func() View, opts ...Option) {
 	initDebugFromEnv()
 
@@ -158,6 +185,7 @@ func Run(title string, build func() View, opts ...Option) {
 				}
 
 				debugFlushFrame()
+				debugCheckLifecycle()
 
 				// Request the next frame so the UI stays responsive
 				// to state changes (clicks, input, etc.).

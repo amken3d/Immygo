@@ -25,6 +25,7 @@ type RadioGroupView struct {
 //
 // To read: size.Selected()
 func RadioGroup(options ...string) *RadioGroupView {
+	markStatefulCtor()
 	return &RadioGroupView{rg: widget.NewRadioGroup(options...)}
 }
 
