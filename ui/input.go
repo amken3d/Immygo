@@ -66,6 +66,14 @@ func (i *InputView) Disabled() *InputView {
 	return i
 }
 
+// Compact selects the dense variant: ~4dp inset, hairline border, smaller
+// corner radius. Use for forms that need to fit inside cards or canvas
+// node bodies where the standard variant overflows.
+func (i *InputView) Compact() *InputView {
+	i.field.Variant = widget.TextFieldCompact
+	return i
+}
+
 // Helper sets helper text rendered below the field in muted color. Replaced
 // by error text when Error is set.
 //

@@ -17,11 +17,28 @@ import (
 	"github.com/amken3d/immygo/theme"
 )
 
+// ToggleVariant selects the visual density of a Toggle.
+//
+//   - ToggleStandard (default): 44x22dp, 16dp knob. Suitable for stand-alone
+//     forms and settings rows.
+//   - ToggleSlim: 28x14dp, 10dp knob. Suitable for inline placement in
+//     dense card headers or canvas node title bars where the standard
+//     variant overwhelms its surroundings.
+type ToggleVariant int
+
+const (
+	ToggleStandard ToggleVariant = iota
+	ToggleSlim
+)
+
 // Toggle is a switch/toggle control inspired by Fluent Design toggle switches.
 // Features smooth knob sliding animation and track color transition.
 type Toggle struct {
 	Value    bool
 	OnChange func(bool)
+
+	// Variant selects between standard (default) and slim density.
+	Variant ToggleVariant
 
 	clickable giowidget.Clickable
 
@@ -104,10 +121,16 @@ func (t *Toggle) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 		gtx.Execute(op.InvalidateCmd{})
 	}
 
-	width := gtx.Dp(unit.Dp(44))
-	height := gtx.Dp(unit.Dp(22))
-	knobSize := gtx.Dp(unit.Dp(16))
-	padding := gtx.Dp(unit.Dp(3))
+	// Per-variant dimensions. Slim is sized to sit inline with body-small
+	// text in dense card headers without dominating the strip.
+	wDp, hDp, knobDp, padDp := unit.Dp(44), unit.Dp(22), unit.Dp(16), unit.Dp(3)
+	if t.Variant == ToggleSlim {
+		wDp, hDp, knobDp, padDp = unit.Dp(28), unit.Dp(14), unit.Dp(10), unit.Dp(2)
+	}
+	width := gtx.Dp(wDp)
+	height := gtx.Dp(hDp)
+	knobSize := gtx.Dp(knobDp)
+	padding := gtx.Dp(padDp)
 
 	return t.clickable.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		size := image.Point{X: width, Y: height}

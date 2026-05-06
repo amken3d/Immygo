@@ -43,6 +43,13 @@ func (t *ToggleView) SetValue(on bool) {
 	t.toggle.Value = on
 }
 
+// Slim selects the dense variant: 28x14dp, 10dp knob. Use for inline
+// placement in card headers or canvas node title bars.
+func (t *ToggleView) Slim() *ToggleView {
+	t.toggle.Variant = widget.ToggleSlim
+	return t
+}
+
 // --- Modifier bridge ---
 
 func (t *ToggleView) Padding(dp unit.Dp) *Styled       { return Style(t).Padding(dp) }

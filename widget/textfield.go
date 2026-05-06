@@ -14,6 +14,20 @@ import (
 	"github.com/amken3d/immygo/theme"
 )
 
+// TextFieldVariant selects the visual density of a TextField.
+//
+//   - TextFieldStandard (default): th.Space.MD padding, 1px border with focus
+//     glow, full corner radius. Suitable for stand-alone forms.
+//   - TextFieldCompact: th.Space.XS padding, 0.5px hairline border, smaller
+//     corner radius. Suitable for dense forms inside cards or canvas node
+//     bodies where the standard variant overflows.
+type TextFieldVariant int
+
+const (
+	TextFieldStandard TextFieldVariant = iota
+	TextFieldCompact
+)
+
 // TextField is a styled text input with placeholder, border, and focus states.
 // Features an animated focus glow ring and bottom accent line.
 type TextField struct {
@@ -21,6 +35,9 @@ type TextField struct {
 	CornerRadius unit.Dp
 	Disabled     bool
 	OnSubmit     func(string)
+
+	// Variant selects between standard (default) and compact density.
+	Variant TextFieldVariant
 
 	// HelperText shows below the field in muted color when ErrorText is empty.
 	HelperText string
@@ -124,9 +141,27 @@ func (t *TextField) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 	focused := t.focused
 	cornerR := t.CornerRadius
 	if cornerR == 0 {
-		cornerR = th.Corner.SM
+		if t.Variant == TextFieldCompact {
+			// CornerRadius doesn't expose an XS step; 2dp keeps the
+			// rounding subtle but still discernible at small sizes.
+			cornerR = unit.Dp(2)
+		} else {
+			cornerR = th.Corner.SM
+		}
 	}
 	radius := gtx.Dp(cornerR)
+
+	// Per-variant density knobs. Padding affects total field height and
+	// horizontal text inset; baseBorder is the resting stroke width before
+	// the focus-glow animation thickens it.
+	pad := th.Space.MD
+	baseBorder := float32(1.0)
+	glowBorder := float32(1.0)
+	if t.Variant == TextFieldCompact {
+		pad = th.Space.XS
+		baseBorder = 0.5
+		glowBorder = 0.5
+	}
 
 	// Animate focus glow
 	if focused {
@@ -202,7 +237,7 @@ func (t *TextField) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 				fillRect(gtx, bgColor, size, radius)
 
 				// Border (thicker when in error state, even unfocused)
-				borderWidth := float32(1.0) + float32(1.0)*glowProgress
+				borderWidth := baseBorder + glowBorder*glowProgress
 				if hasError && borderWidth < 1.5 {
 					borderWidth = 1.5
 				}
@@ -224,10 +259,10 @@ func (t *TextField) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 			// Foreground: inset + editor
 			func(gtx layout.Context) layout.Dimensions {
 				inset := layout.Inset{
-					Top:    th.Space.MD,
-					Bottom: th.Space.MD,
-					Left:   th.Space.MD,
-					Right:  th.Space.MD,
+					Top:    pad,
+					Bottom: pad,
+					Left:   pad,
+					Right:  pad,
 				}
 				return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					// Ensure hint text sets minimum size
