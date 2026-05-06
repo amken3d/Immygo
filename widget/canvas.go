@@ -42,6 +42,15 @@ type Node struct {
 	// padding. Use ui.NodeBody to adapt an ImmyGo View.
 	Body NodeBody
 
+	// HeaderWidget, if set, renders inline with the title in the
+	// header strip, right-aligned. The widget is drawn live (its
+	// pointer events register at correct screen coordinates) so it
+	// can host interactive controls -- e.g. a slim toggle for the
+	// node's "enabled" state. Constrained to a small fraction of the
+	// header width; the title's available width shrinks to fit.
+	// Use ui.NodeBody (the same adapter) to plug in an ImmyGo View.
+	HeaderWidget NodeBody
+
 	// cachedHeight is updated by layoutNode each frame and used by
 	// hit-testing on the next frame. Zero falls back to the
 	// port-only formula.
@@ -50,6 +59,13 @@ type Node struct {
 	// size the card on the current frame so the body can draw live
 	// (no op.Record/replay) without misrouting events.
 	cachedBodyHeight int
+	// cachedHeaderWidgetW / H are last frame's measured HeaderWidget
+	// dimensions. Like cachedBodyHeight, they let the widget draw live
+	// at the right offset without op.Record/replay (which would
+	// misroute pointer events on interactive children like toggles).
+	// Both zero on first frame; layoutNode falls back to guesses then.
+	cachedHeaderWidgetW int
+	cachedHeaderWidgetH int
 }
 
 // NodeBody renders a node's body content. Implementations get the
@@ -233,6 +249,14 @@ func (c *Canvas) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 		event.Op(gtx.Ops, &c.tag)
 		area.Pop()
 	}
+
+	// Clip every draw op (wires, nodes, marquee) to the canvas widget's
+	// allocated rectangle so panned/dragged nodes can't visually spill
+	// into surrounding panes (e.g. a sibling live-video pane). Pointer
+	// hit-testing is independent of this clip; it's gated by the
+	// pointer area registered above and so already respects the rect.
+	drawClip := clip.Rect(image.Rectangle{Max: size}).Push(gtx.Ops)
+	defer drawClip.Pop()
 
 	if c.Graph != nil {
 		// World-space drawing happens inside an affine transform:
@@ -491,9 +515,10 @@ func (c *Canvas) handleViewportEvents(gtx layout.Context) {
 				c.PanY = c.panAnchorY + (pe.Position.Y - c.panStart.Y)
 			case dragNode:
 				worldX, worldY := c.screenToWorld(pe.Position)
+				size := gtx.Constraints.Max
 				for i := range c.Graph.Nodes {
-					id := c.Graph.Nodes[i].ID
-					off, ok := c.dragGroupOffsets[id]
+					n := &c.Graph.Nodes[i]
+					off, ok := c.dragGroupOffsets[n.ID]
 					if !ok {
 						continue
 					}
@@ -503,8 +528,9 @@ func (c *Canvas) handleViewportEvents(gtx layout.Context) {
 						nx = c.snap(nx)
 						ny = c.snap(ny)
 					}
-					c.Graph.Nodes[i].X = nx
-					c.Graph.Nodes[i].Y = ny
+					nx, ny = c.clampNodeToViewport(gtx, n, size, nx, ny)
+					n.X = nx
+					n.Y = ny
 				}
 			case dragWire:
 				worldX, worldY := c.screenToWorld(pe.Position)
@@ -581,6 +607,61 @@ func (c *Canvas) deleteSelected() {
 // screenToWorld inverts the affine: world = (screen - pan) / zoom.
 func (c *Canvas) screenToWorld(p f32.Point) (float32, float32) {
 	return (p.X - c.PanX) / c.Zoom, (p.Y - c.PanY) / c.Zoom
+}
+
+// clampNodeToViewport keeps a node entirely inside the canvas's current
+// visible viewport during a drag. Without this clamp, a user can drag
+// a node off-screen with no easy way to bring it back -- particularly
+// painful when the canvas is embedded next to other panes.
+//
+// The canvas uses an affine transform; "viewport" here means the
+// world-space rectangle that maps to the widget's allocated rect at
+// the current pan/zoom. We require:
+//   nx               >= viewport.MinX  (left edge of node onscreen)
+//   nx + nodeWidth   <= viewport.MaxX  (right edge of node onscreen)
+//   ny               >= viewport.MinY
+//   ny + nodeHeight  <= viewport.MaxY
+//
+// If the node is wider/taller than the viewport at the current zoom,
+// we pin its top-left corner to the viewport's top-left so the user can
+// at least see and interact with the header (which is always a drag
+// handle). Pan/zoom remain unconstrained -- the user can pan to see
+// the rest of an oversize node.
+func (c *Canvas) clampNodeToViewport(gtx layout.Context, n *Node, size image.Point, nx, ny float32) (float32, float32) {
+	if c.Zoom <= 0 {
+		return nx, ny
+	}
+	w := float32(gtx.Dp(canvasNodeWidth))
+	h := float32(canvasNodeHeight(gtx, n))
+
+	// World-space viewport: top-left = (-PanX/Zoom, -PanY/Zoom),
+	// extents = (size.X/Zoom, size.Y/Zoom).
+	minX := -c.PanX / c.Zoom
+	minY := -c.PanY / c.Zoom
+	maxX := minX + float32(size.X)/c.Zoom
+	maxY := minY + float32(size.Y)/c.Zoom
+
+	if w >= maxX-minX {
+		nx = minX
+	} else {
+		if nx < minX {
+			nx = minX
+		}
+		if nx+w > maxX {
+			nx = maxX - w
+		}
+	}
+	if h >= maxY-minY {
+		ny = minY
+	} else {
+		if ny < minY {
+			ny = minY
+		}
+		if ny+h > maxY {
+			ny = maxY - h
+		}
+	}
+	return nx, ny
 }
 
 // startGroupDrag captures per-node cursor offsets for every selected

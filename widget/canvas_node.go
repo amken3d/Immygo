@@ -8,6 +8,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/unit"
 
 	"github.com/amken3d/immygo/theme"
 )
@@ -89,14 +90,37 @@ func layoutNode(gtx layout.Context, th *theme.Theme, n *Node, selected bool, zoo
 	}
 	strokeRect(gtx, outlineCol, size, radius, outlineW)
 
-	// 4. Title text
+	// 4. Title text + optional HeaderWidget (right-aligned in the
+	// header strip). Mirrors the Body strategy: the widget draws live
+	// at an offset computed from last frame's measured size, so its
+	// pointer events register at the correct screen coordinates. On
+	// the first frame the cache is zero and we fall back to guesses
+	// (40dp wide, headerH/2 tall) so the title gets the right
+	// reserved width; the card snaps to the real size on frame 2.
+	headerWidgetW := n.cachedHeaderWidgetW
+	headerWidgetH := n.cachedHeaderWidgetH
+	if n.HeaderWidget != nil && headerWidgetW == 0 {
+		headerWidgetW = gtx.Dp(unit.Dp(40))
+	}
+	if n.HeaderWidget != nil && headerWidgetH == 0 {
+		headerWidgetH = headerH / 2
+	}
+
+	titleAvail := width - 2*pad
+	if n.HeaderWidget != nil {
+		titleAvail -= headerWidgetW + pad
+		if titleAvail < 0 {
+			titleAvail = 0
+		}
+	}
+
 	title := n.Title
 	if title == "" {
 		title = n.Type
 	}
-	if title != "" {
+	if title != "" && titleAvail > 0 {
 		titleGtx := gtx
-		titleGtx.Constraints.Max.X = width - 2*pad
+		titleGtx.Constraints.Max.X = titleAvail
 		titleGtx.Constraints.Min = image.Point{}
 
 		macro := op.Record(gtx.Ops)
@@ -106,6 +130,21 @@ func layoutNode(gtx layout.Context, th *theme.Theme, n *Node, selected bool, zoo
 		off := op.Offset(image.Pt(pad, (headerH-titleDims.Size.Y)/2)).Push(gtx.Ops)
 		call.Add(gtx.Ops)
 		off.Pop()
+	}
+
+	if n.HeaderWidget != nil {
+		hwGtx := gtx
+		hwGtx.Constraints.Max.X = width / 2
+		hwGtx.Constraints.Max.Y = headerH - 2
+		hwGtx.Constraints.Min = image.Point{}
+
+		hwX := width - pad - headerWidgetW
+		hwY := (headerH - headerWidgetH) / 2
+		hwOff := op.Offset(image.Pt(hwX, hwY)).Push(gtx.Ops)
+		dims := n.HeaderWidget.Layout(hwGtx, th)
+		hwOff.Pop()
+		n.cachedHeaderWidgetW = dims.Size.X
+		n.cachedHeaderWidgetH = dims.Size.Y
 	}
 
 	// 5. Input ports (left edge).

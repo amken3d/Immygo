@@ -98,6 +98,26 @@ func (c *CanvasView) WithCatalog(cat *widget.Catalog) *CanvasView {
 	return c
 }
 
+// Selected returns a snapshot of the currently-selected node IDs in
+// unspecified order. Empty when nothing is selected.
+//
+// Useful for hosting panels (e.g. a right-side Properties pane) that
+// follow canvas selection. Read once per frame at the top of your
+// build closure; the underlying selection set mutates during Layout
+// in response to clicks, so reading here gives you the previous
+// frame's state -- one-frame lag which is imperceptible at typical
+// frame rates.
+func (c *CanvasView) Selected() []widget.NodeID {
+	if c.canvas == nil {
+		return nil
+	}
+	out := make([]widget.NodeID, 0, len(c.canvas.SelectedNodes))
+	for id := range c.canvas.SelectedNodes {
+		out = append(out, id)
+	}
+	return out
+}
+
 // --- Node palette ---
 
 // NodePaletteView is a sidebar showing the registered node types.
