@@ -23,11 +23,25 @@ type appConfig struct {
 	theme         *theme.Theme
 	themeRef      **theme.Theme // allows runtime theme switching
 	onInit        func()
+	maximized     bool
 }
 
 // Size sets the initial window dimensions.
 func Size(w, h unit.Dp) Option {
 	return func(c *appConfig) { c.width = w; c.height = h }
+}
+
+// Maximized opens the window in the host's maximized state. Useful for
+// app-shell experiences where the user expects the full desktop area
+// (canvas editors, IDEs, dashboards) rather than a default-size dialog.
+//
+// Combine with Size to set the restored (un-maximized) dimensions:
+//
+//	ui.Run("App", build, ui.Size(1280, 800), ui.Maximized())
+//
+// When the user un-maximizes, the window snaps back to Size.
+func Maximized() Option {
+	return func(c *appConfig) { c.maximized = true }
 }
 
 // Dark uses the dark Fluent theme.
@@ -140,11 +154,15 @@ func Run(title string, build func() View, opts ...Option) {
 
 	go func() {
 		w := new(app.Window)
-		w.Option(
+		opts := []app.Option{
 			app.Title(title),
 			app.Size(cfg.width, cfg.height),
 			app.MinSize(unit.Dp(400), unit.Dp(300)),
-		)
+		}
+		if cfg.maximized {
+			opts = append(opts, app.Maximized.Option())
+		}
+		w.Option(opts...)
 
 		if cfg.onInit != nil {
 			cfg.onInit()
