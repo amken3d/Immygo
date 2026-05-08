@@ -122,6 +122,19 @@ type Canvas struct {
 	// from pointer.Move events; drives the hover highlight.
 	hoveredEdge int
 
+	// Hovered port. Updated from pointer.Move and (during a wire drag)
+	// pointer.Drag. Drives:
+	//   - a small halo around the cursor-near port circle so the operator
+	//     sees which port their cursor is over, especially helpful on
+	//     multi-input nodes (current vs reference) where two adjacent
+	//     dots would otherwise be ambiguous.
+	//   - the wire-drop snap target during dragWire: the wire endpoint
+	//     glides to the hovered port instead of free-floating.
+	// hoveredPortNodeID == "" means "no port under cursor".
+	hoveredPortNodeID   NodeID
+	hoveredPort         int
+	hoveredPortIsOutput bool
+
 	// Drag state machine.
 	drag        dragMode
 	dragNodeID  NodeID
@@ -167,7 +180,7 @@ const (
 // NewCanvas creates a canvas bound to the given graph. Mutations to the
 // graph (via the pointer) are visible on the next frame.
 func NewCanvas(graph *Graph) *Canvas {
-	return &Canvas{Graph: graph, Zoom: 1.0, SelectedEdge: -1, hoveredEdge: -1}
+	return &Canvas{Graph: graph, Zoom: 1.0, SelectedEdge: -1, hoveredEdge: -1, hoveredPortNodeID: ""}
 }
 
 // Reset clears the canvas's selection, drag, and hover state. Useful
@@ -177,6 +190,7 @@ func (c *Canvas) Reset() {
 	c.SelectedNodes = nil
 	c.SelectedEdge = -1
 	c.hoveredEdge = -1
+	c.hoveredPortNodeID = ""
 	c.drag = dragNone
 	c.dragNodeID = ""
 	c.dragGroupOffsets = nil
@@ -320,10 +334,36 @@ func (c *Canvas) Layout(gtx layout.Context, th *theme.Theme) layout.Dimensions {
 			}
 		}
 
+		// Pre-compute "is this input port connected" bitmasks per node
+		// so layoutNode can render unconnected inputs hollow (a clear
+		// "this slot needs a wire" cue, especially for multi-input
+		// stages where one slot might be deliberately unwired).
+		connectedInputs := make([]uint32, len(c.Graph.Nodes))
+		nodeIdxByID := make(map[NodeID]int, len(c.Graph.Nodes))
+		for i := range c.Graph.Nodes {
+			nodeIdxByID[c.Graph.Nodes[i].ID] = i
+		}
+		for _, e := range c.Graph.Edges {
+			idx, ok := nodeIdxByID[e.To]
+			if !ok {
+				continue
+			}
+			if e.ToPort >= 0 && e.ToPort < 32 {
+				connectedInputs[idx] |= uint32(1) << uint(e.ToPort)
+			}
+		}
+
 		// Nodes on top.
 		for i := range c.Graph.Nodes {
 			n := &c.Graph.Nodes[i]
-			layoutNode(gtx, th, n, c.IsSelected(n.ID), c.Zoom, c.Catalog)
+			hoverPort := -1
+			hoverOnInput := false
+			if c.hoveredPortNodeID == n.ID {
+				hoverPort = c.hoveredPort
+				hoverOnInput = !c.hoveredPortIsOutput
+			}
+			layoutNode(gtx, th, n, c.IsSelected(n.ID), c.Zoom, c.Catalog,
+				hoverPort, hoverOnInput, connectedInputs[i])
 		}
 
 		stack.Pop()
@@ -535,6 +575,18 @@ func (c *Canvas) handleViewportEvents(gtx layout.Context) {
 			case dragWire:
 				worldX, worldY := c.screenToWorld(pe.Position)
 				c.dragWireCursor = f32.Pt(worldX, worldY)
+				/* Track the candidate drop target so the renderer can
+				 * snap the in-flight wire end to the hovered port and
+				 * draw a halo. Pointer.Move doesn't fire during a drag
+				 * (only pointer.Drag), so the hover update has to live
+				 * here. */
+				if pid, pport, pisOut, phit := c.hitPort(gtx, worldX, worldY); phit {
+					c.hoveredPortNodeID = pid
+					c.hoveredPort = pport
+					c.hoveredPortIsOutput = pisOut
+				} else {
+					c.hoveredPortNodeID = ""
+				}
 			case dragMarquee:
 				c.marqueeEnd = pe.Position
 			}
@@ -552,18 +604,33 @@ func (c *Canvas) handleViewportEvents(gtx layout.Context) {
 			c.dragWireFromNodeID = ""
 
 		case pointer.Move:
-			// Update hover highlight only when not in an interaction —
-			// during drag/pan/wire we don't want the hover state to
-			// flicker as the cursor passes over wires.
-			if c.drag != dragNone {
-				c.hoveredEdge = -1
-				continue
-			}
 			worldX, worldY := c.screenToWorld(pe.Position)
-			c.hoveredEdge = c.hitWire(gtx, worldX, worldY)
+			// Wire hover only outside of any drag -- during a node /
+			// pan / marquee drag the hover state would flicker as
+			// the cursor crosses unrelated wires.
+			if c.drag == dragNone {
+				c.hoveredEdge = c.hitWire(gtx, worldX, worldY)
+			} else {
+				c.hoveredEdge = -1
+			}
+			// Port hover updates in both idle and dragWire modes -- the
+			// drag-wire case wants to know which target port the cursor
+			// is over so the renderer can draw the wire snapped to it.
+			if c.drag == dragNone || c.drag == dragWire {
+				if pid, pport, pisOut, phit := c.hitPort(gtx, worldX, worldY); phit {
+					c.hoveredPortNodeID = pid
+					c.hoveredPort = pport
+					c.hoveredPortIsOutput = pisOut
+				} else {
+					c.hoveredPortNodeID = ""
+				}
+			} else {
+				c.hoveredPortNodeID = ""
+			}
 
 		case pointer.Leave:
 			c.hoveredEdge = -1
+			c.hoveredPortNodeID = ""
 		}
 	}
 }

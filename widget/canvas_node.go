@@ -18,7 +18,20 @@ import (
 // stroke to indicate selection. The zoom argument compensates stroke
 // widths so they appear constant in screen pixels at any zoom level.
 // catalog (when non-nil) supplies per-port-type colors.
-func layoutNode(gtx layout.Context, th *theme.Theme, n *Node, selected bool, zoom float32, catalog *Catalog) {
+//
+// hoverPort + hoverOnInput identify the port circle (if any) currently
+// under the cursor on this node; the renderer draws a halo on it so
+// the operator sees their drop target unambiguously, especially on
+// multi-input nodes where two adjacent input dots would otherwise
+// be hard to disambiguate. hoverPort < 0 = no hovered port.
+//
+// connectedInputs is a bitmask of "input port k has at least one
+// inbound edge". Unconnected input ports render hollow (just the
+// outline ring) so the operator notices "did I wire this slot?" at
+// a glance -- particularly useful for stages like pose_compare with
+// two inputs where forgetting one is silent today.
+func layoutNode(gtx layout.Context, th *theme.Theme, n *Node, selected bool, zoom float32, catalog *Catalog,
+	hoverPort int, hoverOnInput bool, connectedInputs uint32) {
 	nodeOff := op.Offset(image.Pt(int(n.X), int(n.Y))).Push(gtx.Ops)
 	defer nodeOff.Pop()
 
@@ -147,19 +160,29 @@ func layoutNode(gtx layout.Context, th *theme.Theme, n *Node, selected bool, zoo
 		n.cachedHeaderWidgetH = dims.Size.Y
 	}
 
-	// 5. Input ports (left edge).
+	// 5. Input ports (left edge). Connected inputs render filled (the
+	// type-coloured circle); unconnected ones render hollow (just the
+	// surface-coloured ring against an outline) so the operator
+	// notices "this slot needs a wire" at a glance. Hover halo on the
+	// active port for unambiguous drop-target feedback.
 	for i, port := range n.Inputs {
 		py := headerH + rowH*i + rowH/2
 		col := catalog.PortColor(port.Type, th.Palette.Primary)
-		drawPort(gtx, th, image.Pt(0, py), portR, col)
+		hov := hoverOnInput && hoverPort == i
+		connected := i < 32 && (connectedInputs&(uint32(1)<<uint(i))) != 0
+		drawPortStyled(gtx, th, image.Pt(0, py), portR, col, connected, hov)
 		drawPortLabel(gtx, th, port.Name, portR+pad, py, false, width-2*pad-portR*2)
 	}
 
-	// 6. Output ports (right edge).
+	// 6. Output ports (right edge). Always rendered filled (output
+	// ports are always "live" in the sense that the stage always emits
+	// on them). Hover halo when the cursor is over an output, e.g.
+	// while starting a wire drag.
 	for i, port := range n.Outputs {
 		py := headerH + rowH*i + rowH/2
 		col := catalog.PortColor(port.Type, th.Palette.Primary)
-		drawPort(gtx, th, image.Pt(width, py), portR, col)
+		hov := !hoverOnInput && hoverPort == i
+		drawPortStyled(gtx, th, image.Pt(width, py), portR, col, true, hov)
 		// Label sits inside the body, right-aligned next to the port.
 		drawPortLabel(gtx, th, port.Name, width-portR-pad, py, true, width-2*pad-portR*2)
 	}
@@ -185,9 +208,49 @@ func layoutNode(gtx layout.Context, th *theme.Theme, n *Node, selected bool, zoo
 	}
 }
 
-// drawPort draws a port circle with a subtle ring of the surface color
-// behind it for visual separation from the node edge. col is the
-// fill of the inner circle (per-type when a catalog is set).
+// drawPortStyled draws a port circle with optional hover halo + a
+// connected/unconnected fill style. Connected ports render with the
+// type colour as a solid disc (matches the prior single-style
+// drawPort). Unconnected ports render hollow -- a coloured outline
+// ring around the surface fill -- so the operator sees at a glance
+// that the slot needs a wire. Hover ports get an extra translucent
+// halo around the outer ring; the colour is the type colour with
+// alpha so it still reads as "you're over THIS port".
+func drawPortStyled(gtx layout.Context, th *theme.Theme,
+	center image.Point, r int, col color.NRGBA,
+	connected bool, hovered bool) {
+	if hovered {
+		haloR := r + gtx.Dp(4)
+		haloCol := theme.WithAlpha(col, 80)
+		haloOff := op.Offset(image.Pt(center.X-haloR, center.Y-haloR)).Push(gtx.Ops)
+		fillRect(gtx, haloCol, image.Pt(haloR*2, haloR*2), haloR)
+		haloOff.Pop()
+	}
+
+	// Outer ring (1dp larger, surface-coloured) gives visual separation
+	// from the node edge.
+	outerR := r + gtx.Dp(1)
+	ringOff := op.Offset(image.Pt(center.X-outerR, center.Y-outerR)).Push(gtx.Ops)
+	fillRect(gtx, th.Palette.Surface, image.Pt(outerR*2, outerR*2), outerR)
+	ringOff.Pop()
+
+	// Inner port circle. Connected = solid type colour. Unconnected =
+	// surface fill behind a coloured outline; reads as "open / not
+	// wired". The outline width is generous (1.5dp) so it's still
+	// visible at default zoom.
+	circOff := op.Offset(image.Pt(center.X-r, center.Y-r)).Push(gtx.Ops)
+	if connected {
+		fillRect(gtx, col, image.Pt(r*2, r*2), r)
+	} else {
+		fillRect(gtx, th.Palette.Surface, image.Pt(r*2, r*2), r)
+		strokeRect(gtx, col, image.Pt(r*2, r*2), r, 1.5)
+	}
+	circOff.Pop()
+}
+
+// drawPort retained for API back-compat with any external callers
+// that haven't migrated to the styled variant yet. Treats the port as
+// connected and not hovered.
 func drawPort(gtx layout.Context, th *theme.Theme, center image.Point, r int, col color.NRGBA) {
 	// Outer ring (1dp larger, surface-colored)
 	outerR := r + gtx.Dp(1)
