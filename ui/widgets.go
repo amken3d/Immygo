@@ -146,6 +146,12 @@ func (d *DropdownView) SetSelected(index int) *DropdownView {
 	return d
 }
 
+// SetItems replaces the dropdown items at runtime (e.g. for filtered lists).
+func (d *DropdownView) SetItems(items []string) *DropdownView {
+	d.dd.SetItems(items)
+	return d
+}
+
 // DDWidth sets the dropdown width.
 func (d *DropdownView) DDWidth(w unit.Dp) *DropdownView {
 	d.dd.WithWidth(w)

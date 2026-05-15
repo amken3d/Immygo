@@ -24,13 +24,17 @@ type DropDown struct {
 	SelectedIndex int
 	Placeholder   string
 	Width         unit.Dp
-	OnSelect      func(index int, item string)
-	Disabled      bool
+	// MaxVisibleItems caps the popup's visible height in items; items past
+	// the cap remain accessible via mouse-wheel / scroll. Zero defaults to 10.
+	MaxVisibleItems int
+	OnSelect        func(index int, item string)
+	Disabled        bool
 
 	// State
 	open        bool
 	headerClick giowidget.Clickable
 	itemClicks  []giowidget.Clickable
+	popupList   layout.List // persistent so scroll position survives across frames
 	openAnim    *style.FloatAnimator
 	glowAnim    *style.FloatAnimator
 	hoveredItem int
@@ -39,15 +43,25 @@ type DropDown struct {
 // NewDropDown creates a drop-down with the given items.
 func NewDropDown(items ...string) *DropDown {
 	return &DropDown{
-		Items:         items,
-		SelectedIndex: -1,
-		Placeholder:   "Select...",
-		Width:         200,
-		itemClicks:    make([]giowidget.Clickable, len(items)),
-		openAnim:      style.NewFloatAnimator(150*time.Millisecond, 0),
-		glowAnim:      style.NewFloatAnimator(200*time.Millisecond, 0),
-		hoveredItem:   -1,
+		Items:           items,
+		SelectedIndex:   -1,
+		Placeholder:     "Select...",
+		Width:           200,
+		MaxVisibleItems: 10,
+		itemClicks:      make([]giowidget.Clickable, len(items)),
+		popupList:       layout.List{Axis: layout.Vertical},
+		openAnim:        style.NewFloatAnimator(150*time.Millisecond, 0),
+		glowAnim:        style.NewFloatAnimator(200*time.Millisecond, 0),
+		hoveredItem:     -1,
 	}
+}
+
+// WithMaxVisibleItems sets the max items shown in the popup before scrolling.
+func (dd *DropDown) WithMaxVisibleItems(n int) *DropDown {
+	if n > 0 {
+		dd.MaxVisibleItems = n
+	}
+	return dd
 }
 
 // WithPlaceholder sets the placeholder text shown when nothing is selected.
@@ -80,6 +94,20 @@ func (dd *DropDown) WithDisabled(d bool) *DropDown {
 	return dd
 }
 
+// SetItems replaces the dropdown items at runtime (for filterable lists).
+// The itemClicks slice is resized to match; SelectedIndex is preserved if
+// still valid (the new item at that index may differ from the old one — the
+// caller is responsible for re-selecting by name if that matters).
+func (dd *DropDown) SetItems(items []string) {
+	dd.Items = items
+	if len(dd.itemClicks) != len(items) {
+		dd.itemClicks = make([]giowidget.Clickable, len(items))
+	}
+	if dd.SelectedIndex >= len(items) {
+		dd.SelectedIndex = -1
+	}
+}
+
 // SelectedItem returns the currently selected item text, or empty string.
 func (dd *DropDown) SelectedItem() string {
 	if dd.SelectedIndex >= 0 && dd.SelectedIndex < len(dd.Items) {
@@ -98,6 +126,13 @@ func (dd *DropDown) Layout(gtx layout.Context, th *theme.Theme) layout.Dimension
 	// Handle header click — toggle open/close
 	if dd.headerClick.Clicked(gtx) && !dd.Disabled {
 		dd.open = !dd.open
+		// When opening, scroll the list to the currently-selected item so it's
+		// visible in the popup (useful for long lists where the selection
+		// might be far below the visible window).
+		if dd.open && dd.SelectedIndex > 0 {
+			dd.popupList.Position.First = dd.SelectedIndex
+			dd.popupList.Position.Offset = 0
+		}
 	}
 
 	// Handle item clicks
@@ -215,11 +250,15 @@ func (dd *DropDown) layoutHeader(gtx layout.Context, th *theme.Theme, width int)
 func (dd *DropDown) layoutPopup(gtx layout.Context, th *theme.Theme, width int, openProgress float32) layout.Dimensions {
 	radius := gtx.Dp(unit.Dp(6))
 	itemHeight := gtx.Dp(unit.Dp(36))
-	maxItems := len(dd.Items)
-	if maxItems > 6 {
-		maxItems = 6 // cap visible items
+	maxVisible := dd.MaxVisibleItems
+	if maxVisible <= 0 {
+		maxVisible = 10
 	}
-	totalHeight := int(float32(itemHeight*maxItems) * openProgress)
+	visibleItems := len(dd.Items)
+	if visibleItems > maxVisible {
+		visibleItems = maxVisible
+	}
+	totalHeight := int(float32(itemHeight*visibleItems) * openProgress)
 
 	size := image.Point{X: width, Y: totalHeight}
 
@@ -228,26 +267,19 @@ func (dd *DropDown) layoutPopup(gtx layout.Context, th *theme.Theme, width int, 
 	fillRect(gtx, th.Palette.Surface, size, radius)
 	strokeRect(gtx, th.Palette.OutlineVariant, size, radius, 0.5)
 
-	// Clip to popup bounds
+	// Clip to popup bounds — scrollable list lives inside this clip.
 	rr := clip.UniformRRect(image.Rectangle{Max: size}, radius)
 	defer rr.Push(gtx.Ops).Pop()
 
-	// Items
-	for i := range dd.Items {
-		if i >= maxItems {
-			break
-		}
-		idx := i
-		itemY := itemHeight * idx
-		if itemY+itemHeight > totalHeight {
-			break
-		}
-
-		itemOff := op.Offset(image.Pt(0, itemY)).Push(gtx.Ops)
-
+	// Constrain the list to the popup bounds; layout.List handles mouse-wheel
+	// scrolling automatically and renders only the visible window of items.
+	gtx.Constraints.Min = size
+	gtx.Constraints.Max = size
+	dd.popupList.Layout(gtx, len(dd.Items), func(gtx layout.Context, idx int) layout.Dimensions {
 		itemSize := image.Point{X: width, Y: itemHeight}
+		gtx.Constraints.Min = itemSize
+		gtx.Constraints.Max = itemSize
 
-		// Hover/selected background
 		hovered := dd.itemClicks[idx].Hovered()
 		selected := idx == dd.SelectedIndex
 		if selected {
@@ -279,9 +311,8 @@ func (dd *DropDown) layoutPopup(gtx layout.Context, th *theme.Theme, width int, 
 				return NewLabel(dd.Items[idx]).WithColor(fg).Layout(gtx, th)
 			})
 		})
-
-		itemOff.Pop()
-	}
+		return layout.Dimensions{Size: itemSize}
+	})
 
 	return layout.Dimensions{Size: size}
 }
