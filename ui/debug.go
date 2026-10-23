@@ -15,8 +15,10 @@ import (
 // DebugInfo holds the layout tree for a single widget.
 type DebugInfo struct {
 	Type       string       `json:"type"`
-	MinW, MinH int          `json:"minW,omitempty"`
-	MaxW, MaxH int          `json:"maxW,omitempty"`
+	MinW       int          `json:"minW,omitempty"`
+	MinH       int          `json:"minH,omitempty"`
+	MaxW       int          `json:"maxW,omitempty"`
+	MaxH       int          `json:"maxH,omitempty"`
 	ResultW    int          `json:"resultW,omitempty"`
 	ResultH    int          `json:"resultH,omitempty"`
 	Children   []*DebugInfo `json:"children,omitempty"`
