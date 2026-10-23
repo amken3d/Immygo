@@ -209,7 +209,7 @@ func main() {
 			ui.Text("• Toast notifications and dialogs"),
 		).Spacing(ui.SpaceXS).Padding(ui.SpaceSm)).
 		Section("Requirements", ui.VStack(
-			ui.Text("• Go 1.21+"),
+			ui.Text("• Go 1.26+"),
 			ui.Text("• Linux: libwayland-client, libxkbcommon"),
 			ui.Text("• macOS: Xcode command line tools"),
 			ui.Text("• Windows: No additional dependencies"),
